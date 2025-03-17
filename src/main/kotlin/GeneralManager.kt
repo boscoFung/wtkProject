@@ -3,7 +3,7 @@ object GeneralManager {
 
 
     init {
-        println("General Manager initialized.")
+        println("Setting up the general manager.")
     }
 
     fun addPlayer(player: Player) {
