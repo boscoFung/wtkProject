@@ -1,0 +1,146 @@
+import kotlin.random.Random
+
+abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {
+    override var currentHP: Int = maxHP
+    override var numOfCards: Int = 4
+    override var skipPlayPhase: Boolean = false
+    override val judgementCommands: MutableList<Command> = mutableListOf()
+    var strategy: Strategy? = null
+    private val observers: MutableList<Observer> = mutableListOf()
+
+    override fun registerObserver(observer: Observer) {
+        observers.add(observer)
+    }
+
+    override fun removeObserver(observer: Observer) {
+        observers.remove(observer)
+    }
+
+    override fun notifyObservers(dodged: Boolean) {
+        for (observer in observers) {
+            observer.update(dodged)
+        }
+    }
+
+    override fun dodgeAttack() {
+        val dodged = hasDodgeCard()
+        if (dodged) {
+            println("$name dodged attack by spending a dodge card.")
+        } else {
+            currentHP--
+            println("$name can't dodge the attack, current HP is $currentHP.")
+        }
+        if (strategy is LordStrategy) {
+            notifyObservers(dodged)
+        }
+    }
+
+    override fun hasAttackCard(): Boolean {
+        val attackChance = 1
+        return (1..numOfCards).any { Random.nextDouble() < attackChance }
+    }
+    override fun playPhase() {
+        if (skipPlayPhase) {
+            println("$name is skipping the Play Phase.")
+            skipPlayPhase = false
+        } else {
+            println("$name is in the Play Phase.")
+            if (hasAttackCard()) {
+                val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                if (target != null) {
+                    val targetIdentity = when ((target as General).strategy) {
+                        is LordStrategy -> "lord"
+                        is LoyalistStrategy -> "loyalist"
+                        is RebelStrategy -> "rebel"
+                        is SpyStrategy -> "spy"
+                        else -> "unknown"
+                    }
+                    println("$name spends a card to attack a $targetIdentity, ${target.name}")
+                    numOfCards--
+                    target.beingAttacked()
+                } else {
+                    println("$name has an attack card but no target to attack.")
+                }
+            } else {
+                println("$name does not have an attack card.")
+            }
+        }
+    }
+}
+interface Player {
+    val name: String
+    val maxHP: Int
+    var currentHP: Int
+    var numOfCards: Int
+    var skipPlayPhase: Boolean
+    val judgementCommands: MutableList<Command>
+    fun hasAttackCard(): Boolean
+    fun beingAttacked() {
+        println("$name is being attacked.")
+        dodgeAttack()
+    }
+    fun dodgeAttack() {
+        if (hasDodgeCard()) {
+            println("$name dodged attack by spending a dodge card.")
+        } else {
+            currentHP--
+            println("$name can't dodge the attack, current HP is $currentHP.")
+        }
+    }
+    fun hasDodgeCard(): Boolean {
+        val dodgeChance = 0.5
+        return (1..numOfCards).any { Math.random() < dodgeChance }
+    }
+    fun takeTurn() {
+        preparationPhase()
+        judgementPhase()
+        drawPhase()
+        playPhase()
+        discardPhase()
+        finalPhase()
+    }
+    fun preparationPhase() {
+//        println("$name is in the Preparation Phase.")
+    }
+
+    fun judgementPhase() {
+//        println("$name is in the Judgement Phase.")
+        val iterator = judgementCommands.iterator()
+        while (iterator.hasNext()) {
+            val command = iterator.next()
+            command(this)
+            iterator.remove()
+        }
+    }
+
+    fun drawPhase() {
+        val cardsDrawn = 2
+        numOfCards += cardsDrawn
+        println("$name draws $cardsDrawn card(s) and now has $numOfCards card(s).")
+    }
+
+    fun playPhase() {
+//        println("$name is in the Play Phase.")
+        if (skipPlayPhase) {
+            println("$name is skipping the Play Phase.")
+            skipPlayPhase = false
+        } else {
+            println("$name is in the Play Phase.")
+        }
+    }
+
+    fun discardPhase() {
+        println("$name has $numOfCards card(s), current HP is $currentHP")
+        val cardsToDiscard = numOfCards - currentHP
+        if (cardsToDiscard > 0) {
+            numOfCards -= cardsToDiscard
+            println("$name discards $cardsToDiscard card(s), now has $numOfCards card(s).")
+        } else {
+            println("$name does not need to discard any cards.")
+        }
+    }
+
+    fun finalPhase() {
+//        println("$name is in the Final Phase.")
+    }
+}
