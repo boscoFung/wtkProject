@@ -44,6 +44,7 @@ open class NonLordFactory : GeneralFactory() {
         }
         return players
     }
+
     fun createGuanYu(): GuanYuAdapter? {
         val guanYu = GuanYuAdapter(GuanYu())
         return if (guanYu.name !in createdNonLords) {
