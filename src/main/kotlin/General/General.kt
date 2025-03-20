@@ -50,6 +50,20 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         }
     }
 
+    override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {
+        val seat1 = this.seat
+        val seat2 = target.seat
+        val clockwise = Math.abs(seat1 - seat2)
+        val counterclockwise = totalPlayers - clockwise
+        val baseDistance = minOf(clockwise, counterclockwise)
+        return maxOf(1, baseDistance - this.horseMinus + target.horsePlus)
+    }
+
+    override fun calculateAttackRange(): Int {
+        val baseRange = 1
+        return baseRange + this.horsePlus
+    }
+
     override fun playPhase() {
         if (skipPlayPhase) {
             println("$name is skipping the Play Phase.")
@@ -66,9 +80,15 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                         is SpyStrategy -> "spy"
                         else -> "unknown"
                     }
-                    println("$name spends a card to attack a $targetIdentity, ${target.name}")
-                    numOfCards--
-                    target.beingAttacked()
+                    val distance = calculateDistanceTo(target, GeneralManager.getPlayerList().size)
+                    val range = calculateAttackRange()
+                    if (distance <= range) {
+                        println("$name spends a card to attack ${target.name} (distance: $distance, range: $range)")
+                        numOfCards--
+                        target.beingAttacked()
+                    } else {
+                        println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+                    }
                 } else {
                     println("$name has an attack card but no target to attack.")
                 }
@@ -95,6 +115,9 @@ interface Player {
     var eArmor: Equipment?
     var eHorsePlus: Equipment?
     var eHorseMinus: Equipment?
+
+    fun calculateDistanceTo(target: Player, totalPlayers: Int): Int
+    fun calculateAttackRange(): Int
 
     fun beingAttacked() {
         println("$name is being attacked.")
