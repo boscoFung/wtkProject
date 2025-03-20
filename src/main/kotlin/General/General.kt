@@ -37,6 +37,15 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         }
     }
 
+    override fun beingAttacked() {
+        println("$name is being attacked.")
+        if (eArmor != null) {
+            eArmor!!.beingAttacked()  // Calls EightTrigrams.beingAttacked()
+        } else {
+            dodgeAttack()  // Default behavior if no armor
+        }
+    }
+
     override fun dodgeAttack() {
         val dodged = hasDodgeCard()
         if (dodged) {
@@ -49,7 +58,15 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             notifyObservers(dodged)
         }
     }
-
+    override fun playCard(card: Card) {
+        when (card) {
+            is EightTrigramsCard -> {
+                val armor = EightTrigrams(this)
+                equipArmor(armor)
+                removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
+            }
+        }
+    }
     override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {
         val seat1 = this.seat
         val seat2 = target.seat
@@ -70,6 +87,9 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             skipPlayPhase = false
         } else {
             println("$name is in the Play Phase.")
+            hand.filterIsInstance<EquipmentCard>().forEach { card ->
+                playCard(card)
+            }
             if (hasAttackCard()) {
                 val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
                 if (target != null) {
@@ -123,6 +143,11 @@ interface Player {
 
     fun calculateDistanceTo(target: Player, totalPlayers: Int): Int
     fun calculateAttackRange(): Int
+    fun equipArmor(armor: Armor) {
+        eArmor = armor
+        println("$name equipped ${armor.name}")
+    }
+    fun playCard(card: Card)
 
     fun beingAttacked() {
         println("$name is being attacked.")

@@ -2,6 +2,9 @@ import kotlin.random.Random
 
 abstract class Equipment(protected val player: Player) {
     abstract val name: String
+    open fun beingAttacked() {
+        player.beingAttacked()
+    }
 }
 
 abstract class Weapon(player: Player) : Equipment(player) {
@@ -10,7 +13,10 @@ abstract class Weapon(player: Player) : Equipment(player) {
 
 abstract class Armor(player: Player) : Equipment(player) {
     abstract override val name: String
-    open fun beingAttacked() {}
+}
+
+interface ArmorEffect {
+    fun applyEffect(player: Player, onBeingAttacked: () -> Unit)
 }
 
 abstract class HorsePlus(player: Player) : Equipment(player) {

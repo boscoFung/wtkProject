@@ -13,7 +13,7 @@ object CardDeck {
                     // Spades
 //                    Card("Spades", "A", "Lightning"),
 //                    Card("Spades", "A", "Duel"),
-//                    Card("Spades", "2", "Eight Trigrams Formation"),
+            EightTrigramsCard("Spades", "2"),
 //                    Card("Spades", "2", "Yin-Yang Swords"),
 //                    Card("Spades", "3", "Burning Bridges"),
 //                    Card("Spades", "3", "Stealing Sheep"),
@@ -68,7 +68,7 @@ object CardDeck {
 
                     // Clubs
 //                    Card("Clubs", "A", "Duel"),
-//                    Card("Clubs", "2", "Eight Trigrams Formation"),
+                   EightTrigramsCard("Clubs", "2"),
                     AttackCard("Clubs", "2"),
 //                    Card("Clubs", "3", "Burning Bridges"),
                     AttackCard("Clubs", "3"),
