@@ -13,6 +13,9 @@ class GuanYuAdapter(private val guanYu: GuanYu) : Player {
     override var skipPlayPhase: Boolean = false
 
     override val judgementCommands: MutableList<Command> = mutableListOf()
+    override var horsePlus: Int = 0
+    override var horseMinus: Int = 0
+    override var seat: Int = -1
 
     override fun beingAttacked() {
         println("$name is being attacked.")

@@ -1,12 +1,13 @@
 fun main() {
     val totalParticipants = 4 // Example: can be adjusted
     val lordFactory = LordFactory()
+    val nonLordFactory = NonLordFactory()
+
     val lord = lordFactory.createRandomGeneral()
     if (lord != null) {
         GeneralManager.addPlayer(LiuBei().apply { strategy = LordStrategy() })
     }
 
-    val nonLordFactory = NonLordFactory()
     val nonLordPlayers = nonLordFactory.createNonLordPlayers(totalParticipants)
     nonLordPlayers.forEach { GeneralManager.addPlayer(it) }
     val caoCaoPlayer = GeneralManager.getPlayerList().find { it is CaoCao } as? CaoCao

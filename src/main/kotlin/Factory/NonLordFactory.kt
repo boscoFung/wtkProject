@@ -54,6 +54,7 @@ open class NonLordFactory : GeneralFactory() {
             null
         }
     }
+
     fun buildWeiChain(start: WeiGeneral? = null, activeGenerals: List<Player>): WeiGeneral? {
         val weiGenerals = activeGenerals.filterIsInstance<WeiGeneral>()
             .filter { it.name != "Cao Cao" } // Exclude Cao Cao

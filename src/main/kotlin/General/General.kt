@@ -3,9 +3,21 @@ import kotlin.random.Random
 abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {
     override var currentHP: Int = maxHP
     override var numOfCards: Int = 4
+
     override var skipPlayPhase: Boolean = false
     override val judgementCommands: MutableList<Command> = mutableListOf()
+
+    override var horsePlus: Int = 0
+    override var horseMinus: Int = 0
+    override var seat: Int = -1
+
+    override var eWeapon: Equipment? = null
+    override var eArmor: Equipment? = null
+    override var eHorsePlus: Equipment? = null
+    override var eHorseMinus: Equipment? = null
+
     var strategy: Strategy? = null
+
     private val observers: MutableList<Observer> = mutableListOf()
 
     override fun registerObserver(observer: Observer) {
@@ -39,6 +51,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         val attackChance = 1
         return (1..numOfCards).any { Random.nextDouble() < attackChance }
     }
+
     override fun playPhase() {
         if (skipPlayPhase) {
             println("$name is skipping the Play Phase.")
@@ -67,6 +80,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         }
     }
 }
+
 interface Player {
     val name: String
     val maxHP: Int
@@ -74,6 +88,15 @@ interface Player {
     var numOfCards: Int
     var skipPlayPhase: Boolean
     val judgementCommands: MutableList<Command>
+    var seat: Int
+    var horsePlus: Int
+    var horseMinus: Int
+
+    var eWeapon: Equipment?
+    var eArmor: Equipment?
+    var eHorsePlus: Equipment?
+    var eHorseMinus: Equipment?
+
     fun hasAttackCard(): Boolean
     fun beingAttacked() {
         println("$name is being attacked.")

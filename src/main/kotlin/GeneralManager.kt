@@ -7,6 +7,7 @@ object GeneralManager {
     }
 
     fun addPlayer(player: Player) {
+        player.seat = players.size + 1
         players.add(player)
         println("General ${player.name} created.")
         if (player is General) {
@@ -34,7 +35,20 @@ object GeneralManager {
         return players
     }
 
+    fun randomizeSeats() {
+        players.shuffle() //
+        players.forEachIndexed { index, player ->
+            player.seat = index + 1
+        }
+
+        println()
+        players.forEach {
+            println("${it.name} is now seated at position ${it.seat}.")
+        }
+    }
+
     fun gameStart() {
+        randomizeSeats()
         println("Total number of players: ${getPlayerCount()}\n")
         val fourthPlayer = players[3]
         println("${fourthPlayer.name} being placed the Acedia card.")
