@@ -42,7 +42,9 @@ object GeneralManager {
             player.seat = index + 1
         }
 
+        players.sortBy { it.seat }
         println()
+
         players.forEach {
             println("${it.name} is now seated at position ${it.seat}.")
         }
