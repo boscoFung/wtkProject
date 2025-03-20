@@ -67,7 +67,8 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                         else -> "unknown"
                     }
                     println("$name spends a card to attack a $targetIdentity, ${target.name}")
-                    numOfCards--
+                    val removedCard = removeCardOfType(AttackCard::class.java)
+                    println("$name spends ${removedCard?.Suit} ${removedCard?.Number} - ${removedCard?.Name} to attack a $targetIdentity, ${target.name}")
                     target.beingAttacked()
                 } else {
                     println("$name has an attack card but no target to attack.")
@@ -120,7 +121,22 @@ interface Player {
     fun hasPeachCard(): Boolean {
         return hand.any { it is PeachCard }
     }
-
+    //how to use for equipment : val removedCard = removeCardOfType(EquipmentCard::class.java, name = equipmentName, discard = false)
+    //how to use for basic card : val removedCard = removeCardOfType(AttackCard::class.java)
+    fun <T : Card> removeCardOfType(type: Class<T>, name: String? = null): Card? {
+        val cardIndex = if (name != null) {
+            hand.indexOfFirst { type.isInstance(it) && it.Name == name }
+        } else {
+            hand.indexOfFirst { type.isInstance(it) }
+        }
+        return if (cardIndex != -1) {
+            val removedCard = hand.removeAt(cardIndex)
+            CardDeck.discardCard(removedCard) // Send to discard pile
+            removedCard
+        } else {
+            null
+        }
+    }
     fun takeTurn() {
         preparationPhase()
         judgementPhase()
@@ -160,7 +176,7 @@ interface Player {
                 println("The deck is empty. No more cards can be drawn.")
             }
         }
-        println("$name draws $cardsDrawn card(s) and now has $numOfCards card(s).")
+        println("$name draws $cardsDrawn card(s) and now has ${hand.size} card(s).")
         println("Deck Size:" + CardDeck.getDeckSize())
     }
 
@@ -196,7 +212,7 @@ interface Player {
         } else {
             println("$name does not need to discard any cards.")
         }
-        println("$name discards $cardsToDiscard card(s), now has $numOfCards card(s).")
+        println("$name discards $cardsToDiscard card(s), now has ${hand.size} card(s).")
     }
 
 

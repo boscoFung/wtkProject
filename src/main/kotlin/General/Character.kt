@@ -1,3 +1,5 @@
+import Card.CardDeck
+
 //Lord
 class CaoCao : WeiGeneral("Cao Cao", 5) {
     fun entourage(): Boolean {
@@ -47,15 +49,27 @@ class XiahouDun : WeiGeneral("Xiahou Dun", 4)
 class ZhouYu : General("Zhou Yu", 3) {
     override fun drawPhase() {
         val cardsDrawn = 3
-        numOfCards += cardsDrawn
-        println("[Heroism] $name draws $cardsDrawn card(s) and now has $numOfCards card(s).")
+        for (i in 1..cardsDrawn) {
+            val card = CardDeck.drawCard() // 從牌庫抽牌
+            if (card != null) {
+                hand.add(card) // 加入手牌
+            } else {
+                println("The deck is empty. No more cards can be drawn.")
+            }
+        }
+        println("[Heroism] $name draws $cardsDrawn card(s) and now has ${hand.size} card(s).")
     }
 }
 class DiaoChan : General("Diao Chan", 3) {
     override fun discardPhase() {
         super.discardPhase()
-        numOfCards++
-        println("[Beauty Outshining the Moon] $name now has $numOfCards card(s).")
+        val card = CardDeck.drawCard() // 從牌庫抽牌
+        if (card != null) {
+            hand.add(card) // 加入手牌
+            println("[Beauty Outshining the Moon] $name now has ${hand.size} card(s).")
+        } else {
+            println("The deck is empty. No more cards can be drawn.")
+        }
     }
 }
 class GuanYu : General ("Guan Yu", 4)
