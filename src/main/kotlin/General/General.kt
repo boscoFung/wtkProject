@@ -70,6 +70,27 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             skipPlayPhase = false
         } else {
             println("$name is in the Play Phase.")
+
+            val effectCard = hand.firstOrNull { it is EffectCard }
+            if (effectCard != null) {
+                when (effectCard) {
+                    is TargetedCard -> {
+                        val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                        if (target != null) {
+                            effectCard.effect(this, target, GeneralManager.getPlayerList())
+                        } else {
+                            effectCard.effect(this, GeneralManager.getPlayerList())
+                        }
+                    }
+                    is GroupCard -> {
+                        effectCard.effect(this, GeneralManager.getPlayerList())
+                    }
+                    is SelfCard -> {
+                        effectCard.effect(this, GeneralManager.getPlayerList())
+                    }
+                }
+            }
+
             if (hasAttackCard()) {
                 val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
                 if (target != null) {
