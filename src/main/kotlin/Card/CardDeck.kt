@@ -145,7 +145,17 @@ object CardDeck {
             println("Deck Size:" + getDeckSize())
         }
     }
-
+    fun printDiscardPile() {
+        if (discardPile.isEmpty()) {
+            println("The discard pile is empty.")
+        } else {
+            println("Current cards in the discard pile:")
+            discardPile.forEachIndexed { index, card ->
+                println("${card.Suit} ${card.Number} - ${card.Name}")
+            }
+            println("Discard Pile Size: ${discardPile.size}")
+        }
+    }
     fun getDeckSize(): Int{
         return deck.size
     }

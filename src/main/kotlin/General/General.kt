@@ -197,7 +197,7 @@ interface Player {
             if (card != null) {
                 println("${name} plays $cardName on ${target.name}.")
                 when (card) {
-                    is AcediaCard -> card.applyTo(target)
+                    is AcediaCard -> card.applyTo(target, card)
                     // Add more JudgementCard types here in the future
                 }
             }
