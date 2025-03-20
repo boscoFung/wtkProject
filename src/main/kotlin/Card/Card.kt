@@ -1,7 +1,6 @@
 package Card
 
 abstract class Card(open val Suit: String, open val Number: String, open val Name: String) {
-    abstract fun effect()
 }
 
 abstract class BasicCard(
@@ -15,7 +14,6 @@ abstract class EffectCard(
     override val Number: String,
     override val Name: String
 ) : Card(Suit, Number, Name) {
-    abstract override fun effect()
 }
 
 abstract class EquipmentCard(
@@ -23,7 +21,6 @@ abstract class EquipmentCard(
     override val Number: String,
     override val Name: String
 ) : Card(Suit, Number, Name) {
-    abstract override fun effect()
 }
 
 abstract class JudgementCard(
@@ -31,5 +28,4 @@ abstract class JudgementCard(
     override val Number: String,
     override val Name: String
 ) : Card(Suit, Number, Name) {
-    abstract override fun effect()
 }

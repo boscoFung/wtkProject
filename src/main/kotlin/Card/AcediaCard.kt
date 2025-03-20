@@ -3,11 +3,7 @@ package Card
 import Player
 
 class AcediaCard(Suit: String, Number: String) : JudgementCard(Suit, Number, "Acedia") {
-    override fun effect() {
-        // This method will be called when the card is played on a target
-        // It adds a command to the target's judgementCommands list
-        // The actual judgement logic will be handled in judgementPhase()
-    }
+
 
     // Helper method to apply Acedia to a target player
     fun applyTo(target: Player) {
