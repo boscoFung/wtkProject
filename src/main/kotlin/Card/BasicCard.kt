@@ -1,13 +1,5 @@
 package Card
 
-class AttackCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Attack") {
-    override fun effect() {}
-}
-
-class DodgeCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Dodge") {
-    override fun effect() {}
-}
-
-class PeachCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Peach") {
-    override fun effect() {}
-}
+class AttackCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Attack")
+class DodgeCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Dodge")
+class PeachCard(Suit: String, Number: String) : BasicCard(Suit, Number, "Peach")
