@@ -6,7 +6,7 @@ class AcediaCard(Suit: String, Number: String) : JudgementCard(Suit, Number, "Ac
 
 
     // Helper method to apply Acedia to a target player
-    fun applyTo(target: Player) {
+    fun applyTo(target: Player, acediaCard: AcediaCard) {
         target.judgementCommands.add { player ->
             println("${player.name} is judging the Acedia card.")
             val judgementCard = CardDeck.drawCard()
@@ -18,7 +18,10 @@ class AcediaCard(Suit: String, Number: String) : JudgementCard(Suit, Number, "Ac
                     println("${player.name} fails to dodge the Acedia effect. Skipping their next Play Phase.")
                     player.skipPlayPhase = true
                 }
+
                 CardDeck.discardCard(judgementCard) // Send the judgement card to discard pile
+                CardDeck.discardCard(acediaCard)
+                CardDeck.printDiscardPile()
             } else {
                 println("The deck is empty. Acedia has no effect.")
             }
