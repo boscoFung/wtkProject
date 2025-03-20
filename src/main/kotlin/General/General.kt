@@ -90,11 +90,15 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                     } else {
                         println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
                     }
-                } else {
-                    println("$name has an attack card but no target to attack.")
                 }
             } else {
-                println("$name does not have an attack card.")
+                println("$name has no playable cards (Attack or Acedia).")
+            }
+            if (hasJudgementCard("Acedia")) {
+                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                if (acediaTarget != null) {
+                    playJudgementCard(acediaTarget, "Acedia")
+                }
             }
         }
     }
@@ -146,7 +150,7 @@ interface Player {
     }
     //how to use for equipment : val removedCard = removeCardOfType(EquipmentCard::class.java, name = equipmentName, discard = false)
     //how to use for basic card : val removedCard = removeCardOfType(AttackCard::class.java)
-    fun <T : Card> removeCardOfType(type: Class<T>, name: String? = null): Card? {
+    fun <T : Card> removeCardOfType(type: Class<T>, name: String? = null, discard: Boolean = true): Card? {
         val cardIndex = if (name != null) {
             hand.indexOfFirst { type.isInstance(it) && it.Name == name }
         } else {
@@ -154,10 +158,30 @@ interface Player {
         }
         return if (cardIndex != -1) {
             val removedCard = hand.removeAt(cardIndex)
-            CardDeck.discardCard(removedCard) // Send to discard pile
+            if (discard && removedCard !is EquipmentCard) {
+                CardDeck.discardCard(removedCard)
+            } // Send to discard pile
             removedCard
         } else {
             null
+        }
+    }
+    fun hasJudgementCard(name: String): Boolean {
+        return hand.any { it is JudgementCard && it.Name == name }
+    }
+
+    fun playJudgementCard(target: Player, cardName: String) {
+        if (hasJudgementCard(cardName)) {
+            val card = removeCardOfType(JudgementCard::class.java, name = cardName, discard = false)
+            if (card != null) {
+                println("${name} plays $cardName on ${target.name}.")
+                when (card) {
+                    is AcediaCard -> card.applyTo(target)
+                    // Add more JudgementCard types here in the future
+                }
+            }
+        } else {
+            println("${name} does not have the judgement card '$cardName' to play.")
         }
     }
     fun takeTurn() {

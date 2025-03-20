@@ -53,9 +53,9 @@ object GeneralManager {
 //        CardDeck.initializeDeck()
         CardDeck.printCard()
         println("Total number of players: ${getPlayerCount()}\n")
-        val fourthPlayer = players[3]
-        println("${fourthPlayer.name} being placed the Acedia card.")
-        fourthPlayer.judgementCommands.add(AcediaCommand)
+//        val fourthPlayer = players[3]
+//        println("${fourthPlayer.name} being placed the Acedia card.")
+//        fourthPlayer.judgementCommands.add(AcediaCommand)
 
         for (player in players) {
             println("${player.name} is drawing 4 cards...")
