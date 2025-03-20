@@ -58,9 +58,5 @@ class DiaoChan : General("Diao Chan", 3) {
         println("[Beauty Outshining the Moon] $name now has $numOfCards card(s).")
     }
 }
-class GuanYu {
-    val maximumHP = 4
-}
-class ZhangFei : General("Zhang Fei", 4) {
-
-}
+class GuanYu : General ("Guan Yu", 4)
+class ZhangFei : General("Zhang Fei", 4)

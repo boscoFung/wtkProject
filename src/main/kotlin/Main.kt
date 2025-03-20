@@ -26,6 +26,5 @@ fun main() {
             lordPlayer.registerObserver(SpyObserver(spy as General))
         }
     }
-
     GeneralManager.gameStart()
 }

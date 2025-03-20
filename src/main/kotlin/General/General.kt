@@ -1,16 +1,19 @@
+import Card.*
 import kotlin.random.Random
 
 abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {
     override var currentHP: Int = maxHP
     override var numOfCards: Int = 4
+    override val hand: MutableList<Card> = mutableListOf() //手牌
 
     override var skipPlayPhase: Boolean = false
     override val judgementCommands: MutableList<Command> = mutableListOf()
 
-    override var horsePlus: Int = 0
-    override var horseMinus: Int = 0
-    override var seat: Int = -1
+    override var horsePlus: Int = 0 //＋1馬
+    override var horseMinus: Int = 0 //-1馬
+    override var seat: Int = -1 // 座號
 
+    //裝備
     override var eWeapon: Equipment? = null
     override var eArmor: Equipment? = null
     override var eHorsePlus: Equipment? = null
@@ -47,11 +50,6 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         }
     }
 
-    override fun hasAttackCard(): Boolean {
-        val attackChance = 1
-        return (1..numOfCards).any { Random.nextDouble() < attackChance }
-    }
-
     override fun playPhase() {
         if (skipPlayPhase) {
             println("$name is skipping the Play Phase.")
@@ -85,6 +83,7 @@ interface Player {
     val name: String
     val maxHP: Int
     var currentHP: Int
+    val hand: MutableList<Card>
     var numOfCards: Int
     var skipPlayPhase: Boolean
     val judgementCommands: MutableList<Command>
@@ -97,7 +96,6 @@ interface Player {
     var eHorsePlus: Equipment?
     var eHorseMinus: Equipment?
 
-    fun hasAttackCard(): Boolean
     fun beingAttacked() {
         println("$name is being attacked.")
         dodgeAttack()
@@ -110,10 +108,19 @@ interface Player {
             println("$name can't dodge the attack, current HP is $currentHP.")
         }
     }
+
     fun hasDodgeCard(): Boolean {
-        val dodgeChance = 0.5
-        return (1..numOfCards).any { Math.random() < dodgeChance }
+        return hand.any { it is DodgeCard }
     }
+
+    fun hasAttackCard(): Boolean {
+        return hand.any { it is AttackCard }
+    }
+
+    fun hasPeachCard(): Boolean {
+        return hand.any { it is PeachCard }
+    }
+
     fun takeTurn() {
         preparationPhase()
         judgementPhase()
@@ -122,6 +129,7 @@ interface Player {
         discardPhase()
         finalPhase()
     }
+
     fun preparationPhase() {
 //        println("$name is in the Preparation Phase.")
     }
@@ -136,10 +144,24 @@ interface Player {
         }
     }
 
+//    fun drawPhase() {
+//        val cardsDrawn = 2
+//        numOfCards += cardsDrawn
+//        println("$name draws $cardsDrawn card(s) and now has $numOfCards card(s).")
+//    }
+
     fun drawPhase() {
         val cardsDrawn = 2
-        numOfCards += cardsDrawn
+        for (i in 1..cardsDrawn) {
+            val card = CardDeck.drawCard() // 從牌庫抽牌
+            if (card != null) {
+                hand.add(card) // 加入手牌
+            } else {
+                println("The deck is empty. No more cards can be drawn.")
+            }
+        }
         println("$name draws $cardsDrawn card(s) and now has $numOfCards card(s).")
+        println("Deck Size:" + CardDeck.getDeckSize())
     }
 
     fun playPhase() {
@@ -152,16 +174,31 @@ interface Player {
         }
     }
 
+//    fun discardPhase() {
+//        println("$name has $numOfCards card(s), current HP is $currentHP")
+//        val cardsToDiscard = numOfCards - currentHP
+//        if (cardsToDiscard > 0) {
+//            numOfCards -= cardsToDiscard
+//            println("$name discards $cardsToDiscard card(s), now has $numOfCards card(s).")
+//        } else {
+//            println("$name does not need to discard any cards.")
+//        }
+//    }
+
     fun discardPhase() {
-        println("$name has $numOfCards card(s), current HP is $currentHP")
-        val cardsToDiscard = numOfCards - currentHP
+        println("$name has ${hand.size} card(s), current HP is $currentHP")
+        val cardsToDiscard = hand.size - currentHP
         if (cardsToDiscard > 0) {
-            numOfCards -= cardsToDiscard
-            println("$name discards $cardsToDiscard card(s), now has $numOfCards card(s).")
+            repeat(cardsToDiscard) {
+                val discardedCard = hand.removeAt(0) // 棄掉最左邊的卡
+                CardDeck.discardCard(discardedCard) // 加入棄牌堆
+            }
         } else {
             println("$name does not need to discard any cards.")
         }
+        println("$name discards $cardsToDiscard card(s), now has $numOfCards card(s).")
     }
+
 
     fun finalPhase() {
 //        println("$name is in the Final Phase.")

@@ -1,6 +1,7 @@
+import Card.CardDeck
+
 object GeneralManager {
     private val players: MutableList<Player> = mutableListOf()
-
 
     init {
         println("Setting up the general manager.")
@@ -49,14 +50,24 @@ object GeneralManager {
 
     fun gameStart() {
         randomizeSeats()
+//        CardDeck.initializeDeck()
+        CardDeck.printCard()
         println("Total number of players: ${getPlayerCount()}\n")
         val fourthPlayer = players[3]
         println("${fourthPlayer.name} being placed the Acedia card.")
         fourthPlayer.judgementCommands.add(AcediaCommand)
+
         for (player in players) {
-            player.takeTurn()
-            println()
+            println("${player.name} is drawing 4 cards...")
+            for (i in 1..4) {
+                val card = CardDeck.drawCard()
+                if (card != null) {
+                    player.hand.add(card)
+                    println("${player.name} draws: ${card.Suit} ${card.Number} - ${card.Name}")
+                }
+            }
         }
+
         for (player in players) {
             player.takeTurn()
             println()

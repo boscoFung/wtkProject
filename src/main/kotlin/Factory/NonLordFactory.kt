@@ -45,15 +45,15 @@ open class NonLordFactory : GeneralFactory() {
         return players
     }
 
-    fun createGuanYu(): GuanYuAdapter? {
-        val guanYu = GuanYuAdapter(GuanYu())
-        return if (guanYu.name !in createdNonLords) {
-            createdNonLords.add(guanYu.name)
-            guanYu
-        } else {
-            null
-        }
-    }
+//    fun createGuanYu(): GuanYuAdapter? {
+//        val guanYu = GuanYuAdapter(GuanYu())
+//        return if (guanYu.name !in createdNonLords) {
+//            createdNonLords.add(guanYu.name)
+//            guanYu
+//        } else {
+//            null
+//        }
+//    }
 
     fun buildWeiChain(start: WeiGeneral? = null, activeGenerals: List<Player>): WeiGeneral? {
         val weiGenerals = activeGenerals.filterIsInstance<WeiGeneral>()
