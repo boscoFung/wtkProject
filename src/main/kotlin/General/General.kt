@@ -146,6 +146,12 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                     playJudgementCard(acediaTarget, "Acedia")
                 }
             }
+            if (hasJudgementCard("Lightning")) {
+                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                if (lightningTarget != null) {
+                    playJudgementCard(lightningTarget, "Lightning")
+                }
+            }
         }
     }
 }
@@ -228,6 +234,7 @@ interface Player {
                 println("${name} plays $cardName on ${target.name}.")
                 when (card) {
                     is AcediaCard -> card.applyTo(target, card)
+                    is LightningCard -> card.applyTo(target, card)
                     // Add more JudgementCard types here in the future
                 }
             }

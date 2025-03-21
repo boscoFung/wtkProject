@@ -11,7 +11,7 @@ object CardDeck {
     fun initializeDeck() { //牌庫
         deck = mutableListOf(
                     // Spades
-//                    Card("Spades", "A", "Lightning"),
+                    LightningCard("Spades", "A"),
                     DuelCard("Spades", "A"),
                     EightTrigramsCard("Spades", "2"),
 //                    Card("Spades", "2", "Yin-Yang Swords"),

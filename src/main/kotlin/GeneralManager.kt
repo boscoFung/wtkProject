@@ -38,7 +38,12 @@ object GeneralManager {
     fun getPlayerList(): List<Player> {
         return players
     }
-
+    fun getAlivePlayerList(): List<Player> {
+        return players.filter { it.currentHP > 0 }
+    }
+    fun getAlivePlayerCount(): Int {
+        return players.count { it.currentHP > 0 }
+    }
     fun randomizeSeats() {
         players.shuffle() //
         players.forEachIndexed { index, player ->
@@ -73,6 +78,10 @@ object GeneralManager {
             }
         }
 
+        for (player in players) {
+            player.takeTurn()
+            println()
+        }
         for (player in players) {
             player.takeTurn()
             println()
