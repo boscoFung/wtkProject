@@ -1,6 +1,5 @@
 package Card
-
-import Player
+import General.*
 
 class AcediaCard(Suit: String, Number: String) : JudgementCard(Suit, Number, "Acedia") {
 

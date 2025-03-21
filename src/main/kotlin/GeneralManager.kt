@@ -1,4 +1,7 @@
+package Strategy
 import Card.CardDeck
+import General.General
+import General.Player
 
 object GeneralManager {
     private val players: MutableList<Player> = mutableListOf()

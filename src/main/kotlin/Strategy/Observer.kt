@@ -1,3 +1,7 @@
+package Strategy
+
+import General.General
+
 interface Observer {
     fun update(dodged: Boolean)
 }

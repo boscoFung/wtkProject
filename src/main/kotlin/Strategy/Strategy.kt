@@ -1,3 +1,8 @@
+package Strategy
+
+import General.General
+import General.Player
+
 abstract class Strategy {
     abstract fun whomToAttack(currentPlayer: Player, allPlayers: List<Player>): Player?
 }

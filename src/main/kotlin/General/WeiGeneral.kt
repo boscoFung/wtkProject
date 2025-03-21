@@ -1,3 +1,4 @@
+package General
 abstract class WeiGeneral(name: String, maxHP: Int) : General(name, maxHP) {
     var next: WeiGeneral? = null
     var forceDodgeForTesting: Boolean = false

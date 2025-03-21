@@ -1,4 +1,7 @@
+package Equipment
+import General.*
 import kotlin.random.Random
+
 
 abstract class Equipment(protected val player: Player) {
     abstract val name: String

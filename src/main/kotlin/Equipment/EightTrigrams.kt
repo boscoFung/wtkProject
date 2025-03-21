@@ -1,5 +1,8 @@
 import Card.CardDeck
 import Card.DodgeCard
+import Equipment.Armor
+import Equipment.ArmorEffect
+import General.*
 import kotlin.random.Random
 
 class EightTrigrams(player: Player) : Armor(player) {

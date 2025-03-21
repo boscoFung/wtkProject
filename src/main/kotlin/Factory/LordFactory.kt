@@ -1,3 +1,10 @@
+package Factory
+
+import General.CaoCao
+import General.General
+import General.LiuBei
+import General.SunQuan
+import Strategy.LordStrategy
 import kotlin.random.Random
 
 class LordFactory : GeneralFactory() {

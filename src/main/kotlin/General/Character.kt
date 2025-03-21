@@ -1,4 +1,8 @@
+package General
 import Card.CardDeck
+
+import Strategy.*
+import General.*
 
 //Lord
 class CaoCao : WeiGeneral("Cao Cao", 5) {

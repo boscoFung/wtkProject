@@ -1,3 +1,7 @@
+package Command
+
+import General.*
+
 typealias Command = (Player) -> Unit
 const val ACEDIA_DODGE_CHANCE = 0.25
 

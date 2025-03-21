@@ -1,6 +1,5 @@
 package Card
-import General
-import Player
+import General.*
 
 // TargetedCard
 abstract class TargetedCard(Suit: String, Number: String, Name: String) : EffectCard(Suit, Number, Name) {

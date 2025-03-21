@@ -1,4 +1,11 @@
+package General
 import Card.*
+import Command.Command
+import EightTrigrams
+import Equipment.Armor
+import Equipment.Equipment
+import Strategy.*
+
 import kotlin.random.Random
 
 abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {

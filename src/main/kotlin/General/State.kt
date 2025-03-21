@@ -1,5 +1,7 @@
+package General
 import Card.AttackCard
 import Card.CardDeck
+import Strategy.GeneralManager
 
 interface State {
     fun playNextCard(player: LiuBei)
