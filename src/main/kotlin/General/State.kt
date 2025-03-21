@@ -31,8 +31,11 @@ class UnhealthyState : State {
         println("Liu Bei is not healthy.")
         if (player.hand.size >= 2) {
             println("[Benevolence] Liu Bei gives away two cards and recovers 1 HP, now his HP is ${player.currentHP + 1}.")
-            println("Liu Bei is now healthy.")
-            player.currentHP++
+            player.currentHP = minOf(player.currentHP + 1, player.maxHP) // Cap HP at maxHP
+            if (player.currentHP == player.maxHP) {
+                println("Liu Bei is now healthy.")
+                player.state = HealthyState() // Transition to HealthyState
+            }
             repeat(2) {
                 val discardedCard = player.hand.removeAt(0) // 棄掉最左邊的卡
                 CardDeck.discardCard(discardedCard) // 加入棄牌堆

@@ -43,6 +43,7 @@ class LightningCard(Suit: String, Number: String) : JudgementCard(Suit, Number, 
                     player.currentHP -= 3
                     if (player.currentHP <= 0) {
                         println("${player.name} has been defeated by the lightning strike (HP: ${player.currentHP}).")
+                        player.handleDefeat() // No killer for lightning strike
                     } else {
                         println("${player.name}'s HP is now ${player.currentHP}.")
                     }

@@ -1,23 +1,26 @@
 package General
 import Card.CardDeck
+import Card.DodgeCard
 
 import Strategy.*
 import General.*
 
 //Lord
-class CaoCao : WeiGeneral("Cao Cao", 5) {
+class CaoCao : WeiGeneral("Cao Cao", 1) {
     fun entourage(): Boolean {
         println("[Entourage] $name activates Lord Skill Entourage.")
         return next?.handleRequest() ?: false
     }
 
     override fun dodgeAttack() {
-        println("[Entourage] $name activates Lord Skill Entourage.")
         var dodged = false
         if (!entourage()) {
             println("No Wei general could help. $name attempts to dodge on his own.")
             if (hasDodgeCard()) {
-                println("$name dodged the attack by spending a dodge card.")
+                val dodgeCard = hand.first { it is DodgeCard }
+                hand.remove(dodgeCard)
+                CardDeck.discardCard(dodgeCard)
+                println("$name dodged the attack by spending ${dodgeCard.Suit} ${dodgeCard.Number} - ${dodgeCard.Name}.")
                 dodged = true
             } else {
                 currentHP--
@@ -31,8 +34,23 @@ class CaoCao : WeiGeneral("Cao Cao", 5) {
             notifyObservers(dodged)
         }
     }
+    override fun attack(attacker: Player) {
+        if (currentHP <= 0) {
+            println("$name is already defeated and cannot be attacked.")
+            return
+        }
+        println("$name is being attacked by ${attacker.name}.")
+        if (eArmor != null) {
+            eArmor!!.beingAttacked()
+        } else {
+            dodgeAttack()
+        }
+        if (currentHP <= 0) {
+            handleDefeat(attacker)
+        }
+    }
 }
-class LiuBei : General("Liu Bei", 1) {
+class LiuBei : General("Liu Bei", 4) {
     var state: State = UnhealthyState()
 
     override fun playPhase() {
@@ -52,6 +70,10 @@ class XuChu : WeiGeneral("Xu Chu", 4)
 class XiahouDun : WeiGeneral("Xiahou Dun", 4)
 class ZhouYu : General("Zhou Yu", 3) {
     override fun drawPhase() {
+        if (currentHP <= 0) {
+            println("$name is defeated and skips the Draw Phase.")
+            return
+        }
         val cardsDrawn = 3
         for (i in 1..cardsDrawn) {
             val card = CardDeck.drawCard() // 從牌庫抽牌
@@ -66,6 +88,10 @@ class ZhouYu : General("Zhou Yu", 3) {
 }
 class DiaoChan : General("Diao Chan", 3) {
     override fun discardPhase() {
+        if (currentHP <= 0) {
+            println("$name is defeated and skips the Discard Phase.")
+            return
+        }
         super.discardPhase()
         val card = CardDeck.drawCard() // 從牌庫抽牌
         if (card != null) {

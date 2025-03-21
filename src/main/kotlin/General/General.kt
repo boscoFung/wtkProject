@@ -11,6 +11,7 @@ import kotlin.random.Random
 
 abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {
     override var currentHP: Int = maxHP
+    override var defeated: Boolean = false
     override var numOfCards: Int = 4
     override val hand: MutableList<Card> = mutableListOf() //手牌
 
@@ -44,13 +45,36 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             observer.update(dodged)
         }
     }
-
+    open fun attack(attacker: Player) {
+        println("$name is being attacked by ${attacker.name}.")
+        if (currentHP <= 0) {
+            println("$name is already defeated and cannot be attacked.")
+            return
+        }
+        println("$name is being attacked.")
+        if (eArmor != null) {
+            eArmor!!.beingAttacked()
+        } else {
+            dodgeAttack()
+        }
+        if (currentHP <= 0) {
+            handleDefeat(attacker) // Pass the attacker as the killer
+        }
+    }
     override fun beingAttacked() {
+        if (currentHP <= 0) {
+            println("$name is already defeated and cannot be attacked.")
+            return
+        }
         println("$name is being attacked.")
         if (eArmor != null) {
             eArmor!!.beingAttacked()  // Calls EightTrigrams.beingAttacked()
         } else {
             dodgeAttack()  // Default behavior if no armor
+        }
+        if (currentHP <= 0) {
+            // The killer will be set in playPhase() when calling beingAttacked()
+            handleDefeat()
         }
     }
 
@@ -58,6 +82,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
         val dodged = hasDodgeCard()
         if (dodged) {
             println("$name dodged attack by spending a dodge card.")
+            removeCardOfType(DodgeCard::class.java)
         } else {
             currentHP--
             println("$name can't dodge the attack, current HP is $currentHP.")
@@ -121,23 +146,23 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             if (effectCard != null) {
                 when (effectCard) {
                     is TargetedCard -> {
-                        val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                         if (target != null) {
-                            effectCard.effect(this, target, GeneralManager.getPlayerList())
+                            effectCard.effect(this, target, GeneralManager.getAlivePlayerList())
                         } else {
-                            effectCard.effect(this, GeneralManager.getPlayerList())
+                            effectCard.effect(this, GeneralManager.getAlivePlayerList())
                         }
                     }
                     is GroupCard -> {
-                        effectCard.effect(this, GeneralManager.getPlayerList())
+                        effectCard.effect(this, GeneralManager.getAlivePlayerList())
                     }
                     is SelfCard -> {
-                        effectCard.effect(this, GeneralManager.getPlayerList())
+                        effectCard.effect(this, GeneralManager.getAlivePlayerList())
                     }
                 }
             }
             if (hasAttackCard()) {
-                val target = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                 if (target != null) {
                     val targetIdentity = when ((target as General).strategy) {
                         is LordStrategy -> "lord"
@@ -146,13 +171,13 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                         is SpyStrategy -> "spy"
                         else -> "unknown"
                     }
-                    val distance = calculateDistanceTo(target, GeneralManager.getPlayerList().size)
+                    val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
                     val range = calculateAttackRange()
                     if (distance <= range) {
                         //println("$name spends a card to attack a $targetIdentity, ${target.name}")
                         val removedCard = removeCardOfType(AttackCard::class.java)
                         println("$name spends ${removedCard?.Suit} ${removedCard?.Number} - ${removedCard?.Name} to attack a $targetIdentity, ${target.name}")
-                        target.beingAttacked()
+                        target.attack(this)
                     } else {
                         println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
                     }
@@ -161,13 +186,13 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                 println("$name has no playable cards (Attack or Acedia).")
             }
             if (hasJudgementCard("Acedia")) {
-                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                 if (acediaTarget != null) {
                     playJudgementCard(acediaTarget, "Acedia")
                 }
             }
             if (hasJudgementCard("Lightning")) {
-                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getPlayerList())
+                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                 if (lightningTarget != null) {
                     playJudgementCard(lightningTarget, "Lightning")
                 }
@@ -179,6 +204,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
 interface Player {
     val name: String
     val maxHP: Int
+    var defeated: Boolean
     var currentHP: Int
     val hand: MutableList<Card>
     var numOfCards: Int
@@ -248,6 +274,10 @@ interface Player {
     }
 
     fun playJudgementCard(target: Player, cardName: String) {
+        if (target.currentHP <= 0) {
+            println("${target.name} is already defeated and cannot be targeted by $cardName.")
+            return
+        }
         if (hasJudgementCard(cardName)) {
             val card = removeCardOfType(JudgementCard::class.java, name = cardName, discard = false)
             if (card != null) {
@@ -262,12 +292,46 @@ interface Player {
             println("${name} does not have the judgement card '$cardName' to play.")
         }
     }
+    fun handleDefeat(killer: Player? = null) {
+        if (defeated) {
+            println("${name} has already been defeated. Skipping defeat logic.")
+            return
+        }
+        if (currentHP > 0) {
+            println("${name} is not defeated (HP: $currentHP).")
+            return
+        }
+        defeated = true
+        println("${name} has been defeated and is out of the game (HP: $currentHP) by ${killer?.name ?: "an effect"}.")
+        // If the defeated player is a Rebel, the killer draws 3 cards
+        if (this is General && this.strategy is RebelStrategy && killer != null && killer.currentHP > 0) {
+            println("${killer.name} killed a Rebel (${name}) and draws 3 cards as a reward.")
+            for (i in 1..3) {
+                val card = CardDeck.drawCard()
+                if (card != null) {
+                    killer.hand.add(card)
+                    println("${killer.name} draws: ${card.Suit} ${card.Number} - ${card.Name}")
+                } else {
+                    println("The deck is empty. No more cards can be drawn for the reward.")
+                    break
+                }
+            }
+        }
+        // Notify GeneralManager to check game-over conditions
+        GeneralManager.checkGameOver()
+    }
     fun takeTurn() {
+        if (GeneralManager.isGameOver()) return
         preparationPhase()
+        if (GeneralManager.isGameOver()) return
         judgementPhase()
+        if (GeneralManager.isGameOver()) return
         drawPhase()
+        if (GeneralManager.isGameOver()) return
         playPhase()
+        if (GeneralManager.isGameOver()) return
         discardPhase()
+        if (GeneralManager.isGameOver()) return
         finalPhase()
     }
 
@@ -328,14 +392,18 @@ interface Player {
 
     fun discardPhase() {
         println("$name has ${hand.size} card(s), current HP is $currentHP")
-        val cardsToDiscard = hand.size - currentHP
+        val cardsToDiscard = maxOf(0, hand.size - maxOf(0, currentHP)) // Ensure cardsToDiscard is non-negative
         if (cardsToDiscard > 0) {
-            repeat(cardsToDiscard) {
+            var remainingToDiscard = cardsToDiscard
+            while (remainingToDiscard > 0 && hand.isNotEmpty()) {
                 val discardedCard = hand.removeAt(0) // 棄掉最左邊的卡
                 CardDeck.discardCard(discardedCard) // 加入棄牌堆
+                remainingToDiscard--
             }
+            println("$name discards ${cardsToDiscard - remainingToDiscard} card(s), now has ${hand.size} card(s).")
         } else {
             println("$name does not need to discard any cards.")
+            println("$name discards 0 card(s), now has ${hand.size} card(s).")
         }
         println("$name discards $cardsToDiscard card(s), now has ${hand.size} card(s).")
     }
