@@ -87,6 +87,12 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                 }
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
+            is WeaponCard -> {
+                val weapon = WeaponFactory.createWeapon(this, card.Name)
+                eWeapon = weapon
+                println("$name equipped ${weapon.name}")
+                removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
+            }
         }
     }
     override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {

@@ -1,4 +1,5 @@
 package Equipment
+import Card.Card
 import General.*
 import kotlin.random.Random
 
@@ -12,6 +13,12 @@ abstract class Equipment(protected val player: Player) {
 
 abstract class Weapon(player: Player) : Equipment(player) {
     abstract override val name: String
+    open fun applyEffect(attacker: Player, target: Player, attackCard: Card?) {
+        target.beingAttacked()
+    }
+}
+interface WeaponEffect {
+    fun applyEffect(attacker: Player, target: Player, attackCard: Card?)
 }
 
 abstract class Armor(player: Player) : Equipment(player) {
