@@ -120,6 +120,30 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             }
         }
     }
+
+    private fun playEffectCards() {
+        val effectCards = hand.filterIsInstance<EffectCard>().toList()
+        for (effectCard in effectCards) {
+            if (GeneralManager.isGameOver()) break
+
+            when (effectCard) {
+                is TargetedCard -> {
+                    val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                    if (target != null) {
+                        effectCard.effect(this, target, GeneralManager.getAlivePlayerList())
+                    } else {
+                        effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                    }
+                }
+                is GroupCard -> {
+                    effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                }
+                is SelfCard -> {
+                    effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                }
+            }
+        }
+    }
     override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {
         val seat1 = this.seat
         val seat2 = target.seat
@@ -142,25 +166,9 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             hand.filterIsInstance<EquipmentCard>().forEach { card ->
                 playCard(card)
             }
-            val effectCard = hand.firstOrNull { it is EffectCard }
-            if (effectCard != null) {
-                when (effectCard) {
-                    is TargetedCard -> {
-                        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
-                        if (target != null) {
-                            effectCard.effect(this, target, GeneralManager.getAlivePlayerList())
-                        } else {
-                            effectCard.effect(this, GeneralManager.getAlivePlayerList())
-                        }
-                    }
-                    is GroupCard -> {
-                        effectCard.effect(this, GeneralManager.getAlivePlayerList())
-                    }
-                    is SelfCard -> {
-                        effectCard.effect(this, GeneralManager.getAlivePlayerList())
-                    }
-                }
-            }
+
+            playEffectCards()
+
             if (hasAttackCard()) {
                 val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                 if (target != null) {
@@ -182,9 +190,8 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                         println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
                     }
                 }
-            } else {
-                println("$name has no playable cards (Attack or Acedia).")
             }
+
             if (hasJudgementCard("Acedia")) {
                 val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
                 if (acediaTarget != null) {

@@ -36,7 +36,6 @@ fun main() {
 
     GeneralManager.gameStart()
 
-    // 可選：測試距離（如果你還想保留）
     println("\n=== 測試玩家之間的距離和攻擊範圍 ===")
     val players = GeneralManager.getPlayerList()
     players.forEach { attacker ->

@@ -38,7 +38,7 @@ object CardDeck {
                     BarbarianInvasionCard("Spades", "K"),
 //
 //                    // Hearts
-//                    Card("Hearts", "A", "Brotherhood"),
+                    BrotherhoodCard("Hearts", "A"),
                     RainingArrowsCard("Hearts", "A"),
                     DodgeCard("Hearts", "2"),
                     DodgeCard("Hearts", "2"),
@@ -90,9 +90,9 @@ object CardDeck {
                     AttackCard("Clubs", "J"),
                     AttackCard("Clubs", "J"),
                     BBQCard("Clubs", "Q"),
-//                    Card("Clubs", "Q", "Negation"),
+                    NegationCard("Clubs", "Q"),
                     BBQCard("Clubs", "K"),
-//                    Card("Clubs", "K", "Negation"),
+                    NegationCard("Clubs", "K"),
 
                     // Diamonds
                     DuelCard("Diamonds", "A"),
