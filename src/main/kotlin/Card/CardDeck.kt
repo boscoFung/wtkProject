@@ -11,7 +11,7 @@ object CardDeck {
     fun initializeDeck() { //牌庫
         deck = mutableListOf(
                     // Spades
-//                    Card("Spades", "A", "Lightning"),
+                    HorseCard("Hearts", "K", "Flying Lightning", HorseType.PLUS),
                     DuelCard("Spades", "A"),
                     EightTrigramsCard("Spades", "2"),
 //                    Card("Spades", "2", "Yin-Yang Swords"),
@@ -20,7 +20,7 @@ object CardDeck {
                     BBQCard("Spades", "4"),
                     StealingSheepCard("Spades", "4"),
 //                    Card("Spades", "5", "Green Dragon Blade"),
-//                    Card("Spades", "5", "Shadowrunner"),
+                  HorseCard("Clubs", "5", "Shadowrunner", HorseType.PLUS),
                     AcediaCard("Spades", "6"),
 //                    Card("Spades", "6", "Blue Steel Blade"),
                     BarbarianInvasionCard("Spades", "7"),
@@ -35,7 +35,7 @@ object CardDeck {
                     StealingSheepCard("Spades", "J"),
 //                    Card("Spades", "Q", "Serpent Spear"),
                     BBQCard("Spades", "Q"),
-//                    Card("Spades", "K", "Ferghana Horse"),
+                    HorseCard("Spades", "K", "Ferghana Horse", HorseType.MINUS),
                     BarbarianInvasionCard("Spades", "K"),
 //
 //                    // Hearts
@@ -48,7 +48,7 @@ object CardDeck {
                     PeachCard("Hearts", "4"),
                     BumperHarvestCard("Hearts", "4"),
 //                    Card("Hearts", "5", "Kirin Bow"),
-//                    Card("Hearts", "5", "Red Hare"),
+                    HorseCard("Hearts", "5", "Red Hare", HorseType.PLUS),
                     PeachCard("Hearts", "6"),
                     AcediaCard("Hearts", "6"),
                     PeachCard("Hearts", "7"),
@@ -63,7 +63,7 @@ object CardDeck {
                     SOONCard("Hearts", "J"),
                     PeachCard("Hearts", "Q"),
                     BBQCard("Hearts", "Q"),
-//                   Card("Hearts", "K", "Flying Lightning"),
+                    HorseCard("Clubs", "5", "Hex Mark", HorseType.MINUS),
                     DodgeCard("Hearts", "K"),
 
                     // Clubs
@@ -116,7 +116,7 @@ object CardDeck {
                     AttackCard("Diamonds", "J"),
                     PeachCard("Diamonds", "Q"),
 //                    Card("Diamonds", "Q", "Sky Piercing Halberd"),
-//                    Card("Diamonds", "K", "Violet Stallion"),
+                    HorseCard("Diamonds", "K", "Violet Stallion", HorseType.MINUS),
                     AttackCard("Diamonds", "K")
                 )
         deck.shuffle()

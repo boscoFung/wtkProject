@@ -1,3 +1,6 @@
+import Factory.*
+import General.*
+import Strategy.*
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
