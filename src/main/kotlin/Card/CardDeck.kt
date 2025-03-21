@@ -11,7 +11,7 @@ object CardDeck {
     fun initializeDeck() { //牌庫
         deck = mutableListOf(
                     // Spades
-                    HorseCard("Hearts", "K", "Flying Lightning", HorseType.PLUS),
+                    LightningCard("Spades", "A"),
                     DuelCard("Spades", "A"),
                     EightTrigramsCard("Spades", "2"),
 //                    Card("Spades", "2", "Yin-Yang Swords"),
@@ -20,7 +20,6 @@ object CardDeck {
                     BBQCard("Spades", "4"),
                     StealingSheepCard("Spades", "4"),
 //                    Card("Spades", "5", "Green Dragon Blade"),
-                  HorseCard("Clubs", "5", "Shadowrunner", HorseType.PLUS),
                     AcediaCard("Spades", "6"),
 //                    Card("Spades", "6", "Blue Steel Blade"),
                     BarbarianInvasionCard("Spades", "7"),
@@ -65,6 +64,7 @@ object CardDeck {
                     BBQCard("Hearts", "Q"),
                     HorseCard("Clubs", "5", "Hex Mark", HorseType.MINUS),
                     DodgeCard("Hearts", "K"),
+                    HorseCard("Hearts", "K", "Flying Lightning", HorseType.PLUS),
 
                     // Clubs
                     DuelCard("Clubs", "A"),
@@ -76,6 +76,7 @@ object CardDeck {
                     AttackCard("Clubs", "4"),
 //                    Card("Clubs", "5", "Hex Mark"),
                     AttackCard("Clubs", "5"),
+                    HorseCard("Clubs", "5", "Shadowrunner", HorseType.PLUS),
                     AcediaCard("Clubs", "6"),
                     AttackCard("Clubs", "6"),
                     BarbarianInvasionCard("Clubs", "7"),
