@@ -4,6 +4,7 @@ import Command.Command
 import EightTrigrams
 import Equipment.Armor
 import Equipment.Equipment
+import Factory.HorseFactory
 import Strategy.*
 
 import kotlin.random.Random
@@ -72,6 +73,20 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
                 equipArmor(armor)
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
+            is HorseCard -> {
+                val horse = HorseFactory.createHorse(this, card.Name, card.type)
+                when (card.type) {
+                    HorseType.PLUS -> {
+                        eHorsePlus = horse
+                        println("$name equipped ${horse.name} (+1 Horse)")
+                    }
+                    HorseType.MINUS -> {
+                        eHorseMinus = horse
+                        println("$name equipped ${horse.name} (-1 Horse)")
+                    }
+                }
+                removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
+            }
         }
     }
     override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {
@@ -84,8 +99,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
     }
 
     override fun calculateAttackRange(): Int {
-        val baseRange = 1
-        return baseRange + this.horsePlus
+        return 1
     }
 
     override fun playPhase() {
