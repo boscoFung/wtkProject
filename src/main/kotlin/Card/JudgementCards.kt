@@ -21,7 +21,7 @@ class AcediaCard(Suit: String, Number: String) : JudgementCard(Suit, Number, "Ac
 
                 CardDeck.discardCard(judgementCard) // Send the judgement card to discard pile
                 CardDeck.discardCard(acediaCard)
-                CardDeck.printDiscardPile()
+//                CardDeck.printDiscardPile()
             } else {
                 println("The deck is empty. Acedia has no effect.")
             }
@@ -70,11 +70,11 @@ class LightningCard(Suit: String, Number: String) : JudgementCard(Suit, Number, 
                     }
                 }
                 CardDeck.discardCard(judgementCard) // Send the judgement card to discard pile
-                CardDeck.printDiscardPile()
+//                CardDeck.printDiscardPile()
             } else {
                 println("The deck is empty. Lightning has no effect.")
                 CardDeck.discardCard(lightningCard)
-                CardDeck.printDiscardPile()
+//                CardDeck.printDiscardPile()
             }
         }
     }

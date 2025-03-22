@@ -135,17 +135,17 @@ object GeneralManager {
         // Game loop
         repeat (50) {
             // Check card count at the start of each round
-            val deckSize = CardDeck.getDeckSize()
-            val discardPileSize = CardDeck.getDiscardPileSize()
-            val totalCards = deckSize + discardPileSize
-            if (totalCards < 10) {
-                println("\n=== Game Stopped Due to Low Card Count ===")
-                println("Total cards remaining (deck + discard pile): $totalCards (less than 10).")
-                CardDeck.printCard()
-                CardDeck.printDiscardPile()
-                println("Game Over! Not enough cards to continue the game.")
-                gameOver = true
-            }
+//            val deckSize = CardDeck.getDeckSize()
+//            val discardPileSize = CardDeck.getDiscardPileSize()
+//            val totalCards = deckSize + discardPileSize
+//            if (totalCards < 10) {
+//                println("\n=== Game Stopped Due to Low Card Count ===")
+//                println("Total cards remaining (deck + discard pile): $totalCards (less than 10).")
+////                CardDeck.printCard()
+////                CardDeck.printDiscardPile()
+//                println("Game Over! Not enough cards to continue the game.")
+//                gameOver = true
+//            }
             val alivePlayers = getAlivePlayerList().sortedBy { it.seat }
             for (player in alivePlayers) {
                 if (gameOver) break // Stop if game over was triggered during a turn

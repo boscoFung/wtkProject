@@ -349,6 +349,18 @@ interface Player {
             println("${name} is not defeated (HP: $currentHP).")
             return
         }
+        // Discard all cards in the player's hand to the discard pile
+        if (hand.isNotEmpty()) {
+            println("${name} discards all cards to the discard pile upon defeat:")
+            hand.forEach { card ->
+                println("${card.Suit} ${card.Number} - ${card.Name}")
+                CardDeck.discardCard(card)
+            }
+            hand.clear()
+            println("${name} now has ${hand.size} card(s) in hand.")
+        } else {
+            println("${name} has no cards to discard upon defeat.")
+        }
         defeated = true
         println("${name} has been defeated and is out of the game (HP: $currentHP) by ${killer?.name ?: "an effect"}.")
         // If the defeated player is a Rebel, the killer draws 3 cards
