@@ -9,6 +9,12 @@ object WeaponFactory {
     fun createWeapon(player: Player, name: String): Weapon {
         return when (name) {
             "Zhuge Crossbow" -> ZhugeCrossbow(player)
+            else -> throw IllegalArgumentException("Unknown weapon: $name")
+        }
+    }
+}
+
+
 //            "Rock Cleaving Axe" -> RockCleavingAxe(player)
 //            "Sky Piercing Halberd" -> SkyPiercingHalberd(player)
 //            "Yin-Yang Swords" -> YinYangSwords(player)
@@ -16,7 +22,3 @@ object WeaponFactory {
 //            "Blue Steel Blade" -> BlueSteelBlade(player)
 //            "Serpent Spear" -> SerpentSpear(player)
 //            "Kirin Bow" -> KirinBow(player)
-            else -> throw IllegalArgumentException("Unknown weapon: $name")
-        }
-    }
-}

@@ -29,6 +29,10 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override var eHorsePlus: Equipment? = null
     override var eHorseMinus: Equipment? = null
 
+    override var baseAttackLimit: Int = 1  // 原始攻擊上限為 1
+    override var baseAttackRange: Int = 1  // 原始攻擊距離為 1
+    private var currentAttackLimit: Int = baseAttackLimit  // 當前攻擊上限
+    private var currentAttackRange: Int = baseAttackRange  // 當前攻擊距離
     var strategy: Strategy? = null
 
     private val observers: MutableList<Observer> = mutableListOf()
@@ -51,7 +55,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         attacksThisTurn = 0
     }
 
-    open fun attack(attacker: Player) {
+    override fun attack(attacker: Player) {
         println("$name is being attacked by ${attacker.name}.")
         if (currentHP <= 0) {
             println("$name is already defeated and cannot be attacked.")
@@ -97,6 +101,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             notifyObservers(dodged)
         }
     }
+
     override fun playCard(card: Card) {
         when (card) {
             is EightTrigramsCard -> {
@@ -120,6 +125,11 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             }
             is WeaponCard -> {
                 val weapon = WeaponFactory.createWeapon(this, card.Name)
+                // 解除當前武器（如果有）
+                if (eWeapon != null) {
+                    (eWeapon as Weapon).unequip()
+                }
+                // 裝備新武器
                 eWeapon = weapon
                 println("$name equipped ${weapon.name}")
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
@@ -162,6 +172,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override fun calculateAttackRange(): Int {
         return 1
     }
+
     override fun performAttack() {
         if (!hasAttackCard()) {
             println("$name has no Attack card to use.")
@@ -184,17 +195,37 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
         val range = calculateAttackRange()
 
-        // 檢查武器是否允許攻擊，無武器時限制為 1 次
-        val canAttack = eWeapon?.let { (it as Weapon).canAttack(attacksThisTurn) } ?: (attacksThisTurn < 1)
-        if (distance <= range && canAttack) {
-            val removedCard = removeCardOfType(AttackCard::class.java)
-            println("$name spends ${removedCard?.Suit} ${removedCard?.Number} - ${removedCard?.Name} to attack a $targetIdentity, ${target.name}")
-            attacksThisTurn++
-            eWeapon?.let { (it as Weapon).applyEffect(this, target, removedCard) } ?: target.attack(this)
-        } else if (distance > range) {
+        // 檢查是否可以攻擊（距離）
+        if (distance > range) {
             println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+            return
+        }
+
+        // 如果有武器，使用武器的攻擊邏輯
+        if (eWeapon != null) {
+            val weapon = eWeapon as Weapon
+            if (weapon.canAttack(attacksThisTurn)) {
+                val attackCard = removeCardOfType(AttackCard::class.java)
+                if (attackCard != null) {
+                    println("$name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                    attacksThisTurn++
+                    weapon.attackTarget(this, target, attackCard)
+                }
+            } else {
+                println("$name has reached the attack limit this turn (attacks: $attacksThisTurn) with ${weapon.name}.")
+            }
         } else {
-            println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+            // 沒有武器，使用原始攻擊邏輯
+            if (attacksThisTurn < currentAttackLimit) {
+                val attackCard = removeCardOfType(AttackCard::class.java)
+                if (attackCard != null) {
+                    println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                    attacksThisTurn++
+                    target.attack(this)
+                }
+            } else {
+                println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+            }
         }
     }
 
@@ -214,8 +245,10 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         // 效果卡處理
         playEffectCards()
 
-        // 執行攻擊
-        performAttack()
+        // 執行攻擊（根據攻擊上限允許多次攻擊）
+        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver()) {
+            performAttack()
+        }
 
         if (hasJudgementCard("Acedia")) {
             val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
@@ -230,6 +263,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             }
         }
     }
+
     override fun drawPhase() {
         if (currentHP <= 0) {
             println("$name is defeated and skips the Draw Phase.")
@@ -292,6 +326,16 @@ interface Player {
     var eHorseMinus: Equipment?
     val gender: String
     var attacksThisTurn: Int  // 新增：追蹤當回合攻擊次數
+
+    var baseAttackLimit: Int  // 原始攻擊上限
+    var baseAttackRange: Int  // 原始攻擊距離
+
+    // 新增：修改和恢復屬性的方法
+    fun modifyAttackLimit(newLimit: Int)
+    fun modifyAttackRange(newRange: Int)
+    fun restoreAttackLimit()
+    fun restoreAttackRange()
+
     fun performAttack()
     fun calculateDistanceTo(target: Player, totalPlayers: Int): Int
     fun calculateAttackRange(): Int
@@ -476,6 +520,9 @@ interface Player {
 //            println("$name does not need to discard any cards.")
 //        }
 //    }
+
+
+    fun attack(attacker: Player)
 
     fun discardPhase() {
         println("$name has ${hand.size} card(s), current HP is $currentHP")

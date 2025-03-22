@@ -2,24 +2,24 @@ package Equipment
 import Card.AttackCard
 import Card.Card
 import Card.CardDeck
-import General.Player
+import General.*
 import Strategy.*
 import kotlin.random.Random
 
 class ZhugeCrossbow(player: Player) : Weapon(player) {
     override val name: String = "Zhuge Crossbow"
+    override val attackRangeModifier: Int = 0  // 攻擊距離 +0
+    override val attackLimitModifier: Int = -1  // 攻擊上限設為無限
 
-    // 諸葛連弩允許無限攻擊
     override fun canAttack(attacksThisTurn: Int): Boolean {
-        return true // 無視攻擊次數限制
+        return true  // 諸葛連弩允許無限攻擊
     }
 
-    override fun applyEffect(attacker: Player, target: Player, attackCard: Card?) {
-        println("${attacker.name} uses $name to attack ${target.name}")
-        target.beingAttacked()
+    override fun attackTarget(attacker: Player, target: Player, attackCard: Card?) {
+        println("${attacker.name} uses $name with ${attackCard?.Suit} ${attackCard?.Number} - ${attackCard?.Name} to attack ${target.name}")
+        target.attack(attacker)
     }
 }
-
 //class RockCleavingAxe(player: Player) : Weapon(player) {
 //    override val name: String = "Rock Cleaving Axe"
 //    override fun applyEffect(attacker: Player, target: Player, attackCard: Card?) {
