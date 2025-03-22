@@ -81,7 +81,7 @@ abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCar
             }
             target.hand.remove(dodgeCard)
             CardDeck.discardCard(dodgeCard)
-            println("${target.name} uses ${dodgeCard.Name} to dodge $Name")
+            println("${target.name} uses ${dodgeCard.Name} (${dodgeCard.Suit} ${dodgeCard.Number}) to dodge $Name")
             damageResults.add("對 ${target.name} 造成了 0 點傷害")
         } else {
             // 直接扣除生命值，不調用 beingAttacked
@@ -90,6 +90,11 @@ abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCar
             val damageDealt = initialHP - target.currentHP
             println("${target.name} can't dodge $Name, current HP is ${target.currentHP}")
             damageResults.add("對 ${target.name} 造成了 $damageDealt 點傷害")
+
+            // 檢查是否死亡
+            if (target.currentHP <= 0) {
+                target.handleDefeat(currentPlayer)
+            }
         }
     }
 }
@@ -157,35 +162,6 @@ class BrotherhoodCard(Suit: String, Number: String) : GroupCard(Suit, Number, "B
     }
 }
 
-// RainingArrowsCard
-class RainingArrowsCard(Suit: String, Number: String) : GroupCard(Suit, Number, "Raining Arrows") {
-    override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
-        val hostileTargets = (currentPlayer as? General)?.strategy?.whomToAttack(currentPlayer, allPlayers)?.let { listOf(it) } ?: emptyList()
-        val safeToUse = allPlayers.all { player ->
-            player == currentPlayer || player.currentHP > 1 || hostileTargets.contains(player)
-        }
-
-        if (safeToUse) {
-            val damageResults = mutableListOf<String>()
-            val targets = allPlayers.filter { it != currentPlayer && it.currentHP > 0 }
-            targets.forEach { target ->
-                println("${currentPlayer.name} uses $Name against ${target.name}")
-                handleDamageWithDodge(currentPlayer, target, allPlayers, damageResults)
-            }
-            currentPlayer.hand.remove(this)
-            CardDeck.discardCard(this)
-
-            if (damageResults.isNotEmpty()) {
-                println("${currentPlayer.name} 使用了萬箭齊發，${damageResults.joinToString("，")}。")
-            }
-        } else {
-            println("${currentPlayer.name} chooses not to use $Name to protect non-hostile players with 1 HP")
-            println("${currentPlayer.name} 選擇不使用萬箭齊發，以保護血量為 1 的非敵對玩家。")
-        }
-    }
-}
-
-// BarbarianInvasionCard
 class BarbarianInvasionCard(Suit: String, Number: String) : GroupCard(Suit, Number, "Barbarian Invasion") {
     override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
         val hostileTargets = (currentPlayer as? General)?.strategy?.whomToAttack(currentPlayer, allPlayers)?.let { listOf(it) } ?: emptyList()
@@ -209,6 +185,33 @@ class BarbarianInvasionCard(Suit: String, Number: String) : GroupCard(Suit, Numb
         } else {
             println("${currentPlayer.name} chooses not to use $Name to protect non-hostile players with 1 HP")
             println("${currentPlayer.name} 選擇不使用南蠻入侵，以保護血量為 1 的非敵對玩家。")
+        }
+    }
+}
+
+class RainingArrowsCard(Suit: String, Number: String) : GroupCard(Suit, Number, "Raining Arrows") {
+    override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
+        val hostileTargets = (currentPlayer as? General)?.strategy?.whomToAttack(currentPlayer, allPlayers)?.let { listOf(it) } ?: emptyList()
+        val safeToUse = allPlayers.all { player ->
+            player == currentPlayer || player.currentHP > 1 || hostileTargets.contains(player)
+        }
+
+        if (safeToUse) {
+            val damageResults = mutableListOf<String>()
+            val targets = allPlayers.filter { it != currentPlayer && it.currentHP > 0 }
+            targets.forEach { target ->
+                println("${currentPlayer.name} uses $Name against ${target.name}")
+                handleDamageWithDodge(currentPlayer, target, allPlayers, damageResults)
+            }
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
+
+            if (damageResults.isNotEmpty()) {
+                println("${currentPlayer.name} 使用了萬箭齊發，${damageResults.joinToString("，")}。")
+            }
+        } else {
+            println("${currentPlayer.name} chooses not to use $Name to protect non-hostile players with 1 HP")
+            println("${currentPlayer.name} 選擇不使用萬箭齊發，以保護血量為 1 的非敵對玩家。")
         }
     }
 }
@@ -251,11 +254,21 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
                     currentDuelist.currentHP--
                     val damageDealt = initialHP - currentDuelist.currentHP
                     results.add("$opponentName 沒有殺，受到 $damageDealt 點傷害")
+                    println("$opponentName can't provide an Attack card, current HP is ${currentDuelist.currentHP}")
+
+                    if (currentDuelist.currentHP <= 0) {
+                        currentDuelist.handleDefeat(currentPlayer)
+                        duelActive = false
+                        break
+                    }
+
                     duelActive = false
                 } else {
-                    currentDuelist.removeCardOfType(AttackCard::class.java)
-                    println("$opponentName responds in $Name with an attack card")
-                    results.add("$opponentName 使用了一張殺應對")
+                    val attackCard = currentDuelist.removeCardOfType(AttackCard::class.java)
+                    if (attackCard != null) {
+                        println("$opponentName responds in $Name with an attack card (${attackCard.Suit} ${attackCard.Number})")
+                        results.add("$opponentName 使用了一張殺應對 (${attackCard.Suit} ${attackCard.Number})")
+                    }
                     targetTurn = !targetTurn
                 }
             }
