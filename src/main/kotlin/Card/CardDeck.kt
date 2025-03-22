@@ -125,11 +125,14 @@ object CardDeck {
     }
 
     fun drawCard(): Card? {
-        return if (deck.isNotEmpty()) {
-            deck.removeAt(0) // 從牌庫頂部抽牌
-        } else {
-            null
+        if (deck.isEmpty()) {
+            resetDeck()
+            if (deck.isEmpty()) { // If still empty after reset (e.g., discard pile was empty)
+                println("No cards available to draw after resetting the deck.")
+                return null
+            }
         }
+        return deck.removeAt(0) // Draw the top card
     }
 
     fun discardCard(card: Card) {
@@ -160,5 +163,16 @@ object CardDeck {
     }
     fun getDeckSize(): Int{
         return deck.size
+    }
+    fun resetDeck() {
+        if (discardPile.isEmpty()) {
+            println("Discard pile is empty. Cannot reset the deck.")
+            return
+        }
+        println("Deck is empty. Resetting deck by shuffling the discard pile.")
+        deck.addAll(discardPile) // Transfer all cards from discard pile to deck
+        discardPile.clear() // Clear the discard pile
+        deck.shuffle() // Shuffle the deck
+        println("Deck reset complete. New deck size: ${deck.size}")
     }
 }

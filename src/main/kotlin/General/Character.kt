@@ -75,15 +75,19 @@ class ZhouYu : General("Zhou Yu", 3) {
             return
         }
         val cardsDrawn = 3
+        var actualCardsDrawn = 0
         for (i in 1..cardsDrawn) {
             val card = CardDeck.drawCard() // 從牌庫抽牌
             if (card != null) {
                 hand.add(card) // 加入手牌
+                actualCardsDrawn++
             } else {
                 println("The deck is empty. No more cards can be drawn.")
+                break
             }
         }
-        println("[Heroism] $name draws $cardsDrawn card(s) and now has ${hand.size} card(s).")
+        println("[Heroism] $name draws $actualCardsDrawn card(s) and now has ${hand.size} card(s).")
+        println("Deck Size: ${CardDeck.getDeckSize()}")
     }
 }
 class DiaoChan : General("Diao Chan", 3) {

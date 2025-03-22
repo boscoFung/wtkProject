@@ -206,6 +206,47 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             }
         }
     }
+    override fun drawPhase() {
+        if (currentHP <= 0) {
+            println("$name is defeated and skips the Draw Phase.")
+            return
+        }
+        val cardsDrawn = 2
+        var actualCardsDrawn = 0
+        for (i in 1..cardsDrawn) {
+            val card = CardDeck.drawCard() // 從牌庫抽牌
+            if (card != null) {
+                hand.add(card) // 加入手牌
+                actualCardsDrawn++
+            } else {
+                println("The deck is empty. No more cards can be drawn.")
+                break
+            }
+        }
+        println("$name draws $actualCardsDrawn card(s) and now has ${hand.size} card(s).")
+        println("Deck Size: ${CardDeck.getDeckSize()}")
+    }
+
+    override fun discardPhase() {
+        if (currentHP <= 0) {
+            println("$name is defeated and skips the Discard Phase.")
+            return
+        }
+        println("$name has ${hand.size} card(s), current HP is $currentHP")
+        val cardsToDiscard = maxOf(0, hand.size - maxOf(0, currentHP)) // Ensure cardsToDiscard is non-negative
+        if (cardsToDiscard > 0) {
+            var remainingToDiscard = cardsToDiscard
+            while (remainingToDiscard > 0 && hand.isNotEmpty()) {
+                val discardedCard = hand.removeAt(0) // 棄掉最左邊的卡
+                CardDeck.discardCard(discardedCard) // 加入棄牌堆
+                remainingToDiscard--
+            }
+            println("$name discards ${cardsToDiscard - remainingToDiscard} card(s), now has ${hand.size} card(s).")
+        } else {
+            println("$name does not need to discard any cards.")
+            println("$name discards 0 card(s), now has ${hand.size} card(s).")
+        }
+    }
 }
 
 interface Player {
