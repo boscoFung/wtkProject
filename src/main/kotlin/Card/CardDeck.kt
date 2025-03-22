@@ -164,6 +164,9 @@ object CardDeck {
     fun getDeckSize(): Int{
         return deck.size
     }
+    fun getDiscardPileSize(): Int{
+        return discardPile.size
+    }
     fun resetDeck() {
         if (discardPile.isEmpty()) {
             println("Discard pile is empty. Cannot reset the deck.")
