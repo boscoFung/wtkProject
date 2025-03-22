@@ -6,6 +6,7 @@ import Equipment.Armor
 import Equipment.Equipment
 import Equipment.Weapon
 import Factory.HorseFactory
+import Factory.WeaponFactory
 import Strategy.*
 
 import kotlin.random.Random
@@ -172,7 +173,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     }
 
     override fun calculateAttackRange(): Int {
-        return 1
+        return currentAttackRange
     }
 
     override fun performAttack() {

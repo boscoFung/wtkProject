@@ -21,28 +21,26 @@ abstract class Weapon(player: Player) : Equipment(player) {
     private val originalAttackRange: Int
 
     init {
-        originalAttackLimit = player.baseAttackLimit
-        originalAttackRange = player.baseAttackRange
+        originalAttackLimit = player.currentAttackLimit
+        originalAttackRange = player.currentAttackRange
 
+        // Apply attack limit modifier
         if (attackLimitModifier == -1) {
             player.modifyAttackLimit(Int.MAX_VALUE)
         } else {
-            player.modifyAttackLimit(player.baseAttackLimit + attackLimitModifier)
+            player.modifyAttackLimit(originalAttackLimit + attackLimitModifier)
         }
 
-        player.modifyAttackRange(player.baseAttackRange + attackRangeModifier)
+        // Apply attack range modifier
+        player.modifyAttackRange(originalAttackRange + attackRangeModifier)
     }
 
-    // 檢查是否可以攻擊（根據攻擊次數限制）
     abstract fun canAttack(attacksThisTurn: Int): Boolean
-
-    // 攻擊目標
     abstract fun attackTarget(attacker: Player, target: Player, attackCard: Card?)
 
-    // 解除武器時恢復原始屬性
     open fun unequip() {
-        player.modifyAttackLimit(originalAttackLimit)
-        player.modifyAttackRange(originalAttackRange)
+        player.restoreAttackLimit()
+        player.restoreAttackRange()
         player.eWeapon = null
         println("${player.name} unequipped $name")
     }
