@@ -8,11 +8,11 @@ import kotlin.random.Random
 
 class ZhugeCrossbow(player: Player) : Weapon(player) {
     override val name: String = "Zhuge Crossbow"
-    override val attackRangeModifier: Int = 0  // 攻擊距離 +0
-    override val attackLimitModifier: Int = -1  // 攻擊上限設為無限
+    override val attackLimitModifier: Int = -1
+    override val attackRangeModifier: Int = 0
 
     override fun canAttack(attacksThisTurn: Int): Boolean {
-        return true  // 諸葛連弩允許無限攻擊
+        return true
     }
 
     override fun attackTarget(attacker: Player, target: Player, attackCard: Card?) {

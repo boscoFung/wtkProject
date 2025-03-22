@@ -21,18 +21,15 @@ abstract class Weapon(player: Player) : Equipment(player) {
     private val originalAttackRange: Int
 
     init {
-        // 儲存原始屬性
         originalAttackLimit = player.baseAttackLimit
         originalAttackRange = player.baseAttackRange
 
-        // 修改攻擊上限
         if (attackLimitModifier == -1) {
-            player.modifyAttackLimit(Int.MAX_VALUE)  // 無限攻擊
+            player.modifyAttackLimit(Int.MAX_VALUE)
         } else {
             player.modifyAttackLimit(player.baseAttackLimit + attackLimitModifier)
         }
 
-        // 修改攻擊距離
         player.modifyAttackRange(player.baseAttackRange + attackRangeModifier)
     }
 

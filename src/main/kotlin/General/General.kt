@@ -22,17 +22,19 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override var horsePlus: Int = 0 //＋1馬
     override var horseMinus: Int = 0 //-1馬
     override var seat: Int = -1 // 座號
-    override var attacksThisTurn: Int = 0
+    var attacksThisTurn: Int = 0
     //裝備
     override var eWeapon: Equipment? = null
     override var eArmor: Equipment? = null
     override var eHorsePlus: Equipment? = null
     override var eHorseMinus: Equipment? = null
 
-    override var baseAttackLimit: Int = 1  // 原始攻擊上限為 1
-    override var baseAttackRange: Int = 1  // 原始攻擊距離為 1
-    private var currentAttackLimit: Int = baseAttackLimit  // 當前攻擊上限
-    private var currentAttackRange: Int = baseAttackRange  // 當前攻擊距離
+    override var baseAttackLimit: Int = 1
+    override var baseAttackRange: Int = 1
+    override var currentAttackLimit: Int = baseAttackLimit
+    override var currentAttackRange: Int = baseAttackRange
+
+
     var strategy: Strategy? = null
 
     private val observers: MutableList<Observer> = mutableListOf()
@@ -237,16 +239,26 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
         println("$name is in the Play Phase.")
 
-        // 裝備卡處理
         hand.filterIsInstance<EquipmentCard>().forEach { card ->
             playCard(card)
         }
 
-        // 效果卡處理
         playEffectCards()
 
-        // 執行攻擊（根據攻擊上限允許多次攻擊）
-        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver()) {
+        var canAttack = true
+        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+            val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (target == null) {
+                println("$name has no valid target to attack.")
+                break
+            }
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            val range = calculateAttackRange()
+            if (distance > range) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+                canAttack = false // 停止嘗試攻擊
+                break
+            }
             performAttack()
         }
 
@@ -325,17 +337,33 @@ interface Player {
     var eHorsePlus: Equipment?
     var eHorseMinus: Equipment?
     val gender: String
-    var attacksThisTurn: Int  // 新增：追蹤當回合攻擊次數
 
-    var baseAttackLimit: Int  // 原始攻擊上限
-    var baseAttackRange: Int  // 原始攻擊距離
+    var baseAttackLimit: Int
+    var baseAttackRange: Int
 
-    // 新增：修改和恢復屬性的方法
-    fun modifyAttackLimit(newLimit: Int)
-    fun modifyAttackRange(newRange: Int)
-    fun restoreAttackLimit()
-    fun restoreAttackRange()
+    // 新增：當前攻擊上限和攻擊距離
+    var currentAttackLimit: Int
+    var currentAttackRange: Int
 
+    fun modifyAttackLimit(newLimit: Int) {
+        currentAttackLimit = newLimit
+        println("$name's attack limit modified to $currentAttackLimit")
+    }
+
+    fun modifyAttackRange(newRange: Int) {
+        currentAttackRange = newRange
+        println("$name's attack range modified to $currentAttackRange")
+    }
+
+    fun restoreAttackLimit() {
+        currentAttackLimit = baseAttackLimit
+        println("$name's attack limit restored to $currentAttackLimit")
+    }
+
+    fun restoreAttackRange() {
+        currentAttackRange = baseAttackRange
+        println("$name's attack range restored to $currentAttackRange")
+    }
     fun performAttack()
     fun calculateDistanceTo(target: Player, totalPlayers: Int): Int
     fun calculateAttackRange(): Int
