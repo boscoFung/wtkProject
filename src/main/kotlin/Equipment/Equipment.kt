@@ -13,10 +13,15 @@ abstract class Equipment(protected val player: Player) {
 
 abstract class Weapon(player: Player) : Equipment(player) {
     abstract override val name: String
+
+    // 根據當前攻擊次數決定是否允許攻擊
+    abstract fun canAttack(attacksThisTurn: Int): Boolean
+
     open fun applyEffect(attacker: Player, target: Player, attackCard: Card?) {
-        target.beingAttacked()
+        target.beingAttacked() // 默認效果
     }
 }
+
 interface WeaponEffect {
     fun applyEffect(attacker: Player, target: Player, attackCard: Card?)
 }

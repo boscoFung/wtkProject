@@ -8,10 +8,14 @@ import kotlin.random.Random
 
 class ZhugeCrossbow(player: Player) : Weapon(player) {
     override val name: String = "Zhuge Crossbow"
-    var attackCount: Int = 0 // 追蹤當回合攻擊次數
+
+    // 諸葛連弩允許無限攻擊
+    override fun canAttack(attacksThisTurn: Int): Boolean {
+        return true // 無視攻擊次數限制
+    }
 
     override fun applyEffect(attacker: Player, target: Player, attackCard: Card?) {
-        attackCount++ // 允許無限攻擊，移除次數限制
+        println("${attacker.name} uses $name to attack ${target.name}")
         target.beingAttacked()
     }
 }

@@ -6,7 +6,7 @@ import Strategy.*
 import General.*
 
 //Lord
-class CaoCao : WeiGeneral("Cao Cao", 1) {
+class CaoCao : WeiGeneral("Cao Cao", 1, "Male") {
     fun entourage(): Boolean {
         println("[Entourage] $name activates Lord Skill Entourage.")
         return next?.handleRequest() ?: false
@@ -50,7 +50,7 @@ class CaoCao : WeiGeneral("Cao Cao", 1) {
         }
     }
 }
-class LiuBei : General("Liu Bei", 4) {
+class LiuBei : General("Liu Bei", 4,"Male") {
     var state: State = UnhealthyState()
 
     override fun playPhase() {
@@ -58,17 +58,17 @@ class LiuBei : General("Liu Bei", 4) {
         state.playNextCard(this)
     }
 }
-class SunQuan : General("Sun Quan", 5) {
+class SunQuan : General("Sun Quan", 5,"Male") {
 
 }
 
 //Non-lord
-class ZhenJi : WeiGeneral("Zhen Ji", 3)
-class ZhugeLiang : General("Zhuge Liang", 3)
-class SimaYi : WeiGeneral("Sima Yi", 3)
-class XuChu : WeiGeneral("Xu Chu", 4)
-class XiahouDun : WeiGeneral("Xiahou Dun", 4)
-class ZhouYu : General("Zhou Yu", 3) {
+class ZhenJi : WeiGeneral("Zhen Ji", 3, "Female")
+class ZhugeLiang : General("Zhuge Liang", 3,"Male")
+class SimaYi : WeiGeneral("Sima Yi", 3, "Male")
+class XuChu : WeiGeneral("Xu Chu", 4, "Male")
+class XiahouDun : WeiGeneral("Xiahou Dun", 4, "Male")
+class ZhouYu : General("Zhou Yu", 3,"Male") {
     override fun drawPhase() {
         if (currentHP <= 0) {
             println("$name is defeated and skips the Draw Phase.")
@@ -90,7 +90,7 @@ class ZhouYu : General("Zhou Yu", 3) {
         println("Deck Size: ${CardDeck.getDeckSize()}")
     }
 }
-class DiaoChan : General("Diao Chan", 3) {
+class DiaoChan : General("Diao Chan", 3,"Female") {
     override fun discardPhase() {
         if (currentHP <= 0) {
             println("$name is defeated and skips the Discard Phase.")
@@ -106,5 +106,5 @@ class DiaoChan : General("Diao Chan", 3) {
         }
     }
 }
-class GuanYu : General ("Guan Yu", 4)
-class ZhangFei : General("Zhang Fei", 4)
+class GuanYu : General ("Guan Yu", 4, "Male")
+class ZhangFei : General("Zhang Fei", 4, "Male")

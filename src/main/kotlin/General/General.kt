@@ -4,12 +4,13 @@ import Command.Command
 import EightTrigrams
 import Equipment.Armor
 import Equipment.Equipment
+import Equipment.Weapon
 import Factory.HorseFactory
 import Strategy.*
 
 import kotlin.random.Random
 
-abstract class General(override val name: String, override val maxHP: Int) :Player, Subject {
+abstract class General(override val name: String, override val maxHP: Int, override val gender: String) : Player, Subject {
     override var currentHP: Int = maxHP
     override var defeated: Boolean = false
     override var numOfCards: Int = 4
@@ -21,7 +22,7 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
     override var horsePlus: Int = 0 //＋1馬
     override var horseMinus: Int = 0 //-1馬
     override var seat: Int = -1 // 座號
-
+    override var attacksThisTurn: Int = 0
     //裝備
     override var eWeapon: Equipment? = null
     override var eArmor: Equipment? = null
@@ -45,6 +46,11 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
             observer.update(dodged)
         }
     }
+
+    override fun resetAttacks() {
+        attacksThisTurn = 0
+    }
+
     open fun attack(attacker: Player) {
         println("$name is being attacked by ${attacker.name}.")
         if (currentHP <= 0) {
@@ -156,53 +162,71 @@ abstract class General(override val name: String, override val maxHP: Int) :Play
     override fun calculateAttackRange(): Int {
         return 1
     }
+    override fun performAttack() {
+        if (!hasAttackCard()) {
+            println("$name has no Attack card to use.")
+            return
+        }
+
+        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+        if (target == null) {
+            println("$name has no valid target to attack.")
+            return
+        }
+
+        val targetIdentity = when ((target as General).strategy) {
+            is LordStrategy -> "lord"
+            is LoyalistStrategy -> "loyalist"
+            is RebelStrategy -> "rebel"
+            is SpyStrategy -> "spy"
+            else -> "unknown"
+        }
+        val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+        val range = calculateAttackRange()
+
+        // 檢查武器是否允許攻擊，無武器時限制為 1 次
+        val canAttack = eWeapon?.let { (it as Weapon).canAttack(attacksThisTurn) } ?: (attacksThisTurn < 1)
+        if (distance <= range && canAttack) {
+            val removedCard = removeCardOfType(AttackCard::class.java)
+            println("$name spends ${removedCard?.Suit} ${removedCard?.Number} - ${removedCard?.Name} to attack a $targetIdentity, ${target.name}")
+            attacksThisTurn++
+            eWeapon?.let { (it as Weapon).applyEffect(this, target, removedCard) } ?: target.attack(this)
+        } else if (distance > range) {
+            println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+        } else {
+            println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+        }
+    }
 
     override fun playPhase() {
         if (skipPlayPhase) {
             println("$name is skipping the Play Phase.")
             skipPlayPhase = false
-        } else {
-            println("$name is in the Play Phase.")
-            hand.filterIsInstance<EquipmentCard>().forEach { card ->
-                playCard(card)
-            }
+            return
+        }
+        println("$name is in the Play Phase.")
 
-            playEffectCards()
+        // 裝備卡處理
+        hand.filterIsInstance<EquipmentCard>().forEach { card ->
+            playCard(card)
+        }
 
-            if (hasAttackCard()) {
-                val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
-                if (target != null) {
-                    val targetIdentity = when ((target as General).strategy) {
-                        is LordStrategy -> "lord"
-                        is LoyalistStrategy -> "loyalist"
-                        is RebelStrategy -> "rebel"
-                        is SpyStrategy -> "spy"
-                        else -> "unknown"
-                    }
-                    val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-                    val range = calculateAttackRange()
-                    if (distance <= range) {
-                        //println("$name spends a card to attack a $targetIdentity, ${target.name}")
-                        val removedCard = removeCardOfType(AttackCard::class.java)
-                        println("$name spends ${removedCard?.Suit} ${removedCard?.Number} - ${removedCard?.Name} to attack a $targetIdentity, ${target.name}")
-                        target.attack(this)
-                    } else {
-                        println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
-                    }
-                }
-            }
+        // 效果卡處理
+        playEffectCards()
 
-            if (hasJudgementCard("Acedia")) {
-                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
-                if (acediaTarget != null) {
-                    playJudgementCard(acediaTarget, "Acedia")
-                }
+        // 執行攻擊
+        performAttack()
+
+        if (hasJudgementCard("Acedia")) {
+            val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (acediaTarget != null) {
+                playJudgementCard(acediaTarget, "Acedia")
             }
-            if (hasJudgementCard("Lightning")) {
-                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
-                if (lightningTarget != null) {
-                    playJudgementCard(lightningTarget, "Lightning")
-                }
+        }
+        if (hasJudgementCard("Lightning")) {
+            val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (lightningTarget != null) {
+                playJudgementCard(lightningTarget, "Lightning")
             }
         }
     }
@@ -266,7 +290,9 @@ interface Player {
     var eArmor: Equipment?
     var eHorsePlus: Equipment?
     var eHorseMinus: Equipment?
-
+    val gender: String
+    var attacksThisTurn: Int  // 新增：追蹤當回合攻擊次數
+    fun performAttack()
     fun calculateDistanceTo(target: Player, totalPlayers: Int): Int
     fun calculateAttackRange(): Int
     fun equipArmor(armor: Armor) {
@@ -385,6 +411,7 @@ interface Player {
 
     fun preparationPhase() {
 //        println("$name is in the Preparation Phase.")
+        resetAttacks()
     }
 
     fun judgementPhase() {
@@ -426,7 +453,7 @@ interface Player {
             println("$name is in the Play Phase.")
         }
     }
-
+    fun resetAttacks()
 //    fun discardPhase() {
 //        println("$name has $numOfCards card(s), current HP is $currentHP")
 //        val cardsToDiscard = numOfCards - currentHP
