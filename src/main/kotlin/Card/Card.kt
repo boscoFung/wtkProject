@@ -3,6 +3,9 @@ package Card
 import General.*
 
 abstract class Card(open val Suit: String, open val Number: String, open val Name: String) {
+    override fun toString() : String {
+        return "Suit = $Suit, Number = $Number, Name = $Name"
+    }
 }
 
 abstract class BasicCard(
@@ -10,7 +13,6 @@ abstract class BasicCard(
     override val Number: String,
     override val Name: String
 ) : Card(Suit, Number, Name)
-
 
 
 abstract class ImpeccableCard(Suit: String, Number: String, Name: String) : Card(Suit, Number, Name) {
