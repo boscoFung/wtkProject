@@ -138,7 +138,7 @@ object CardDeck {
 
     fun discardCard(card: Card) {
         discardPile.add(card) // 將卡牌加入棄牌堆
-        println("====- DiscardPile SIZE: ${discardPile.size}, Discarded ${card.toString()} -====")
+        println("= DiscardPile SIZE: ${discardPile.size}, Discarded ${card.toString()} =")
     }
 
     fun printCard() { //看牌庫
