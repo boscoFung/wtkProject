@@ -75,16 +75,32 @@ class SkyPiercingHalberd(player: Player) : Weapon(player) {
 
     override fun attackTarget(attacker: Player, target: Player, attackCard: Card?) {
         println("${attacker.name} uses $name with ${attackCard?.Suit} ${attackCard?.Number} - ${attackCard?.Name}")
-        val allPlayers = GeneralManager.getAlivePlayerList()
-        if (attacker.hand.size == 1) { // Last card
+
+        // 檢查是否為攻擊卡
+        if (attackCard !is AttackCard) {
+            // 如果不是攻擊卡，執行普通攻擊
+            println("${attacker.name} attacks ${target.name}")
+            target.attack(attacker)
+            return
+        }
+
+        val handSizeAfterPlaying = attacker.hand.size - 1 // 假設 attackCard 即將從手牌移除
+        if (handSizeAfterPlaying == 0) {
+            val allPlayers = GeneralManager.getAlivePlayerList()
             val targets = allPlayers.filter {
                 it != attacker && attacker.calculateDistanceTo(it, allPlayers.size) <= attacker.calculateAttackRange()
-            }.shuffled().take(3) // Up to 3 targets
-            targets.forEach {
-                println("${attacker.name} attacks ${it.name} with $name")
-                it.attack(attacker)
+            }.shuffled().take(3)
+            if (targets.isNotEmpty()) {
+                println("${attacker.name} triggers $name's special effect, attacking up to 3 targets")
+                targets.forEach {
+                    println("${attacker.name} attacks ${it.name} with $name")
+                    it.attack(attacker)
+                }
+            } else {
+                println("${attacker.name} triggers $name's special effect, but no valid targets are in range")
             }
         } else {
+            // 普通攻擊
             println("${attacker.name} attacks ${target.name}")
             target.attack(attacker)
         }
