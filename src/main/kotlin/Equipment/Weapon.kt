@@ -66,8 +66,8 @@ class RockCleavingAxe(player: Player) : Weapon(player) {
     }
 }
 
-class HeavenScorcherHalberd(player: Player) : Weapon(player) {
-    override val name: String = "Heaven Scorcher Halberd"
+class SkyPiercingHalberd(player: Player) : Weapon(player) {
+    override val name: String = "Sky Piercing Halberd"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 3
 
@@ -91,8 +91,8 @@ class HeavenScorcherHalberd(player: Player) : Weapon(player) {
     }
 }
 
-class GenderDoubleSwords(player: Player) : Weapon(player) {
-    override val name: String = "Gender Double Swords"
+class YinYangSwords(player: Player) : Weapon(player) {
+    override val name: String = "Yin-Yang Swords"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
 
@@ -116,8 +116,8 @@ class GenderDoubleSwords(player: Player) : Weapon(player) {
     }
 }
 
-class GreenDragonCrescentBlade(player: Player) : Weapon(player) {
-    override val name: String = "Green Dragon Crescent Blade"
+class GreenDragonBlade(player: Player) : Weapon(player) {
+    override val name: String = "Green Dragon Blade"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
 
@@ -154,7 +154,7 @@ class BlueSteelBlade(player: Player) : Weapon(player) {
 }
 
 class SerpentSpear(player: Player) : Weapon(player) {
-    override val name: String = "Serpent Halberd"
+    override val name: String = "Serpent Spear"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
 

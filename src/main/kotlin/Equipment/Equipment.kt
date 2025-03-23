@@ -16,23 +16,14 @@ abstract class Weapon(player: Player) : Equipment(player) {
     abstract val attackRangeModifier: Int  // 攻擊距離增量
     abstract val attackLimitModifier: Int  // 攻擊上限增量（-1 表示無限）
 
-    // 儲存原始屬性
-    private val originalAttackLimit: Int
-    private val originalAttackRange: Int
 
-    init {
-        originalAttackLimit = player.currentAttackLimit
-        originalAttackRange = player.currentAttackRange
-
-        // Apply attack limit modifier
+    open fun onEquip() {
         if (attackLimitModifier == -1) {
             player.modifyAttackLimit(Int.MAX_VALUE)
         } else {
-            player.modifyAttackLimit(originalAttackLimit + attackLimitModifier)
+            player.modifyAttackLimit(player.baseAttackLimit + attackLimitModifier)
         }
-
-        // Apply attack range modifier
-        player.modifyAttackRange(originalAttackRange + attackRangeModifier)
+        player.modifyAttackRange(player.baseAttackRange + attackRangeModifier)
     }
 
     abstract fun canAttack(attacksThisTurn: Int): Boolean
@@ -51,6 +42,11 @@ interface WeaponEffect {
 
 abstract class Armor(player: Player) : Equipment(player) {
     abstract override val name: String
+
+    open fun unequip() {
+        player.eArmor = null
+        println("${player.name} unequipped $name")
+    }
 }
 
 interface ArmorEffect {
@@ -62,11 +58,23 @@ abstract class HorsePlus(player: Player) : Equipment(player) {
     init {
         player.horsePlus += 1
     }
+
+    open fun unequip() {
+        player.horsePlus -= 1
+        player.eHorsePlus = null
+        println("${player.name} unequipped $name (+1 Horse)")
+    }
 }
 
 abstract class HorseMinus(player: Player) : Equipment(player) {
     abstract override val name: String
     init {
         player.horseMinus += 1
+    }
+
+    open fun unequip() {
+        player.horseMinus -= 1
+        player.eHorseMinus = null
+        println("${player.name} unequipped $name (-1 Horse)")
     }
 }

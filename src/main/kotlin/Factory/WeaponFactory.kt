@@ -8,9 +8,9 @@ object WeaponFactory {
         return when (name) {
             "Zhuge Crossbow" -> ZhugeCrossbow(player)
             "Rock Cleaving Axe" -> RockCleavingAxe(player)
-            "Heaven Scorcher Halberd" -> HeavenScorcherHalberd(player)
-            "Gender Double Swords" -> GenderDoubleSwords(player)
-            "Green Dragon Crescent Blade" -> GreenDragonCrescentBlade(player)
+            "Sky Piercing Halberd" -> SkyPiercingHalberd(player)
+            "Yin-Yang Swords" -> YinYangSwords(player)
+            "Green Dragon Blade" -> GreenDragonBlade(player)
             "Blue Steel Blade" -> BlueSteelBlade(player)
             "Serpent Spear" -> SerpentSpear(player)
             "Kirin Bow" -> KirinBow(player)

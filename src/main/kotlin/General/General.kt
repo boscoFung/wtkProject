@@ -4,6 +4,8 @@ import Command.Command
 import EightTrigrams
 import Equipment.Armor
 import Equipment.Equipment
+import Equipment.HorsePlus
+import Equipment.HorseMinus
 import Equipment.Weapon
 import Factory.HorseFactory
 import Factory.WeaponFactory
@@ -57,6 +59,16 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override fun resetAttacks() {
         attacksThisTurn = 0
     }
+
+    fun unequipByType(equipment: Equipment) {
+        when (equipment) {
+            is Weapon -> equipment.unequip()
+            is Armor -> equipment.unequip()
+            is HorsePlus -> equipment.unequip()
+            is HorseMinus -> equipment.unequip()
+        }
+    }
+    //target.unequipByType(target.eWeapon!!)
 
     override fun attack(attacker: Player) {
         println("$name is being attacked by ${attacker.name}.")
@@ -128,12 +140,11 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             }
             is WeaponCard -> {
                 val weapon = WeaponFactory.createWeapon(this, card.Name)
-                // 解除當前武器（如果有）
                 if (eWeapon != null) {
                     (eWeapon as Weapon).unequip()
                 }
-                // 裝備新武器
                 eWeapon = weapon
+                weapon.onEquip() // ✅ 加上這行
                 println("$name equipped ${weapon.name}")
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
@@ -210,7 +221,10 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             if (weapon.canAttack(attacksThisTurn)) {
                 val attackCard = removeCardOfType(AttackCard::class.java)
                 if (attackCard != null) {
-                    println("$name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                    val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                    val range = calculateAttackRange()
+                    println("$name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+
                     attacksThisTurn++
                     weapon.attackTarget(this, target, attackCard)
                 }
