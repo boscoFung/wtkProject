@@ -1,15 +1,19 @@
 package Card
+import Equipment.*
 import General.*
 
 // TargetedCard
 abstract class TargetedCard(Suit: String, Number: String, Name: String) : EffectCard(Suit, Number, Name) {
     abstract fun effect(currentPlayer: Player, target: Player, allPlayers: List<Player>)
 
+    enum class ActionType {
+        STEAL, DISCARD
+    }
+
     fun effect(currentPlayer: Player, allPlayers: List<Player>) {
         println("$Name requires a specific target")
     }
 
-    // 提供一個通用的方法來檢查無懈可擊並執行效果
     protected fun executeWithImpeccableCheck(
         currentPlayer: Player,
         target: Player,
@@ -20,14 +24,86 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
             action()
         } else {
             println("${currentPlayer.name}'s $Name was canceled by Impeccable")
-            println("${currentPlayer.name} 的 $Name 被無懈可擊取消。")
             currentPlayer.hand.remove(this)
             CardDeck.discardCard(this)
         }
     }
+
+    protected fun handlePriorityAction(
+        currentPlayer: Player,
+        target: Player,
+        actionType: ActionType,
+        onStealEquipment: (Equipment) -> Unit,
+        onStealCard: (Card) -> Unit,
+        onDiscardEquipment: (Equipment) -> Unit,
+        onDiscardCard: (Card) -> Unit
+    ) {
+        when {
+            target.eWeapon != null -> {
+                val weapon = target.eWeapon as Weapon
+                weapon.unequip()
+                when (actionType) {
+                    ActionType.STEAL -> onStealEquipment(weapon)
+                    ActionType.DISCARD -> onDiscardEquipment(weapon)
+                }
+                printActionMessage(currentPlayer, target, actionType, weapon)
+            }
+            target.eArmor != null -> {
+                val armor = target.eArmor as Armor
+                armor.unequip()
+                when (actionType) {
+                    ActionType.STEAL -> onStealEquipment(armor)
+                    ActionType.DISCARD -> onDiscardEquipment(armor)
+                }
+                printActionMessage(currentPlayer, target, actionType, armor)
+            }
+            target.eHorsePlus != null -> {
+                val horsePlus = target.eHorsePlus as HorsePlus
+                horsePlus.unequip()
+                when (actionType) {
+                    ActionType.STEAL -> onStealEquipment(horsePlus)
+                    ActionType.DISCARD -> onDiscardEquipment(horsePlus)
+                }
+                printActionMessage(currentPlayer, target, actionType, horsePlus)
+            }
+            target.eHorseMinus != null -> {
+                val horseMinus = target.eHorseMinus as HorseMinus
+                horseMinus.unequip()
+                when (actionType) {
+                    ActionType.STEAL -> onStealEquipment(horseMinus)
+                    ActionType.DISCARD -> onDiscardEquipment(horseMinus)
+                }
+                printActionMessage(currentPlayer, target, actionType, horseMinus)
+            }
+            target.hand.isNotEmpty() -> {
+                val card = target.hand.removeAt(0)
+                when (actionType) {
+                    ActionType.STEAL -> onStealCard(card)
+                    ActionType.DISCARD -> onDiscardCard(card)
+                }
+                printActionMessage(currentPlayer, target, actionType, card)
+            }
+        }
+    }
+
+    private fun printActionMessage(currentPlayer: Player, target: Player, actionType: ActionType, item: Any) {
+        val actionName = when (actionType) {
+            ActionType.STEAL -> "Stealing Sheep"
+            ActionType.DISCARD -> "Burning Bridges"
+        }
+        val (itemType, itemName) = when (item) {
+            is Weapon -> "Weapon" to item.name
+            is Armor -> "Armor" to item.name
+            is HorsePlus -> "+1 Horse" to item.name
+            is HorseMinus -> "-1 Horse" to item.name
+            is Card -> "card (${item.Suit} ${item.Number} - ${item.Name})" to "${item.Suit} ${item.Number} - ${item.Name}"
+            else -> "unknown" to "unknown"
+        }
+
+        println("${currentPlayer.name} uses $actionName to ${if (actionType == ActionType.STEAL) "steal" else "discard"} a $itemType from ${target.name}")
+    }
 }
 
-// SelfCard
 abstract class SelfCard(Suit: String, Number: String, Name: String) : EffectCard(Suit, Number, Name) {
     abstract fun effect(currentPlayer: Player, allPlayers: List<Player>)
 
@@ -40,40 +116,34 @@ abstract class SelfCard(Suit: String, Number: String, Name: String) : EffectCard
             action()
         } else {
             println("${currentPlayer.name}'s $Name was canceled by Impeccable")
-            println("${currentPlayer.name} 的 $Name 被無懈可擊取消。")
             currentPlayer.hand.remove(this)
             CardDeck.discardCard(this)
         }
     }
 }
 
-// GroupCard
 abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCard(Suit, Number, Name) {
     abstract fun effect(currentPlayer: Player, allPlayers: List<Player>)
 
-    // 為傷害卡提供規避傷害的邏輯，並直接扣除生命值
     protected fun handleDamageWithDodge(
         currentPlayer: Player,
         target: Player,
         allPlayers: List<Player>,
         damageResults: MutableList<String>
     ) {
-        // 檢查無懈可擊
         if (checkImpeccable(currentPlayer, target, allPlayers, isBenefit = false)) {
             println("${target.name} is protected from $Name by Impeccable")
-            damageResults.add("對 ${target.name} 造成了 0 點傷害")
+            damageResults.add("Dealt 0 damage to ${target.name}")
             return
         }
 
-        // 根據卡片類型檢查規避條件
         val canDodge = when (Name) {
-            "Barbarian Invasion" -> target.hand.any { it is AttackCard } // 南蠻入侵只能用「殺」
-            "Raining Arrows" -> target.hand.any { it is DodgeCard } // 萬箭齊發只能用「閃」
-            else -> target.hand.any { it is AttackCard || it is DodgeCard } // 其他群體傷害卡可以用「殺」或「閃」
+            "Barbarian Invasion" -> target.hand.any { it is AttackCard }
+            "Raining Arrows" -> target.hand.any { it is DodgeCard }
+            else -> target.hand.any { it is AttackCard || it is DodgeCard }
         }
 
         if (canDodge) {
-            // 根據卡片類型移除對應的卡片
             val dodgeCard = when (Name) {
                 "Barbarian Invasion" -> target.hand.first { it is AttackCard }
                 "Raining Arrows" -> target.hand.first { it is DodgeCard }
@@ -82,16 +152,14 @@ abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCar
             target.hand.remove(dodgeCard)
             CardDeck.discardCard(dodgeCard)
             println("${target.name} uses ${dodgeCard.Name} (${dodgeCard.Suit} ${dodgeCard.Number}) to dodge $Name")
-            damageResults.add("對 ${target.name} 造成了 0 點傷害")
+            damageResults.add("Dealt 0 damage to ${target.name}")
         } else {
-            // 直接扣除生命值，不調用 beingAttacked
             val initialHP = target.currentHP
             target.currentHP--
             val damageDealt = initialHP - target.currentHP
             println("${target.name} can't dodge $Name, current HP is ${target.currentHP}")
-            damageResults.add("對 ${target.name} 造成了 $damageDealt 點傷害")
+            damageResults.add("Dealt $damageDealt damage to ${target.name}")
 
-            // 檢查是否死亡
             if (target.currentHP <= 0) {
                 target.handleDefeat(currentPlayer)
             }
@@ -99,7 +167,6 @@ abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCar
     }
 }
 
-// BumperHarvestCard
 class BumperHarvestCard(Suit: String, Number: String) : GroupCard(Suit, Number, "Bumper Harvest") {
     override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
         val cards = mutableListOf<Card>()
@@ -117,7 +184,7 @@ class BumperHarvestCard(Suit: String, Number: String) : GroupCard(Suit, Number, 
                 val card = cards[index % cards.size]
                 player.hand.add(card)
                 println("${player.name} receives a card from $Name")
-                drawResults.add("${player.name} 抽了 1 張牌")
+                drawResults.add("${player.name} drew 1 card")
             }
         }
         currentPlayer.hand.remove(this)
@@ -125,28 +192,26 @@ class BumperHarvestCard(Suit: String, Number: String) : GroupCard(Suit, Number, 
 
         println("")
         if (drawResults.isNotEmpty()) {
-            println("${currentPlayer.name} 使用了五穀豐登，${drawResults.joinToString("，")}。")
+            println("${currentPlayer.name} used $Name, ${drawResults.joinToString(", ")}.")
         } else {
-            println("${currentPlayer.name} 使用了五穀豐登，但牌庫已空，無法抽牌。")
+            println("${currentPlayer.name} used $Name, but the deck is empty, no cards drawn.")
         }
     }
 }
 
 class BrotherhoodCard(Suit: String, Number: String) : GroupCard(Suit, Number, "Brotherhood") {
     override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
-        // 首先確定受影響的玩家所有存活玩家
         val affectedPlayers = allPlayers.filter { it.currentHP > 0 }
         if (currentPlayer.currentHP != currentPlayer.maxHP) {
-            // 檢查無懈可擊
             val playersToHeal = checkImpeccableForGroup(currentPlayer, affectedPlayers, allPlayers, isBenefit = true)
 
             val healResults = mutableListOf<String>()
             playersToHeal.forEach { player ->
                 if (player.currentHP < player.maxHP) {
                     player.currentHP++
-                    healResults.add("${player.name} 回復了 1 點 HP")
+                    healResults.add("${player.name} recovered 1 HP")
                 } else {
-                    healResults.add("${player.name} 的 HP 已滿，無法回復")
+                    healResults.add("${player.name}'s HP is already full")
                 }
             }
 
@@ -154,9 +219,9 @@ class BrotherhoodCard(Suit: String, Number: String) : GroupCard(Suit, Number, "B
             CardDeck.discardCard(this)
 
             if (healResults.isNotEmpty()) {
-                println("${currentPlayer.name} 使用了桃園結義，${healResults.joinToString("，")}。")
+                println("${currentPlayer.name} used $Name, ${healResults.joinToString(", ")}.")
             } else {
-                println("${currentPlayer.name} 使用了桃園結義，但沒有玩家需要回復 HP。")
+                println("${currentPlayer.name} used $Name, but no players need healing.")
             }
         }
     }
@@ -180,11 +245,10 @@ class BarbarianInvasionCard(Suit: String, Number: String) : GroupCard(Suit, Numb
             CardDeck.discardCard(this)
 
             if (damageResults.isNotEmpty()) {
-                println("${currentPlayer.name} 使用了南蠻入侵，${damageResults.joinToString("，")}。")
+                println("${currentPlayer.name} used $Name, ${damageResults.joinToString(", ")}.")
             }
         } else {
             println("${currentPlayer.name} chooses not to use $Name to protect non-hostile players with 1 HP")
-            println("${currentPlayer.name} 選擇不使用南蠻入侵，以保護血量為 1 的非敵對玩家。")
         }
     }
 }
@@ -207,11 +271,10 @@ class RainingArrowsCard(Suit: String, Number: String) : GroupCard(Suit, Number, 
             CardDeck.discardCard(this)
 
             if (damageResults.isNotEmpty()) {
-                println("${currentPlayer.name} 使用了萬箭齊發，${damageResults.joinToString("，")}。")
+                println("${currentPlayer.name} used $Name, ${damageResults.joinToString(", ")}.")
             }
         } else {
             println("${currentPlayer.name} chooses not to use $Name to protect non-hostile players with 1 HP")
-            println("${currentPlayer.name} 選擇不使用萬箭齊發，以保護血量為 1 的非敵對玩家。")
         }
     }
 }
@@ -231,8 +294,6 @@ class SOONCard(Suit: String, Number: String) : SelfCard(Suit, Number, "Something
             println("${currentPlayer.name} uses $Name and draws $actualCardsDrawn cards")
             currentPlayer.hand.remove(this)
             CardDeck.discardCard(this)
-
-            println("${currentPlayer.name} 使用了無中生有，${currentPlayer.name} 抽了 $actualCardsDrawn 張牌。")
         }
     }
 }
@@ -253,8 +314,8 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
                     val initialHP = currentDuelist.currentHP
                     currentDuelist.currentHP--
                     val damageDealt = initialHP - currentDuelist.currentHP
-                    results.add("$opponentName 沒有殺，受到 $damageDealt 點傷害")
                     println("$opponentName can't provide an Attack card, current HP is ${currentDuelist.currentHP}")
+                    results.add("$opponentName took $damageDealt damage")
 
                     if (currentDuelist.currentHP <= 0) {
                         currentDuelist.handleDefeat(currentPlayer)
@@ -267,7 +328,7 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
                     val attackCard = currentDuelist.removeCardOfType(AttackCard::class.java)
                     if (attackCard != null) {
                         println("$opponentName responds in $Name with an attack card (${attackCard.Suit} ${attackCard.Number})")
-                        results.add("$opponentName 使用了一張殺應對 (${attackCard.Suit} ${attackCard.Number})")
+                        results.add("$opponentName used an Attack card (${attackCard.Suit} ${attackCard.Number})")
                     }
                     targetTurn = !targetTurn
                 }
@@ -276,28 +337,47 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
             currentPlayer.hand.remove(this)
             CardDeck.discardCard(this)
 
-            println("${currentPlayer.name} 對 ${target.name} 使用了決鬥，${results.joinToString("，")}。")
+            println("${currentPlayer.name} used $Name against ${target.name}, ${results.joinToString(", ")}.")
         }
     }
 }
 
-// StealingSheepCard
 class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Stealing Sheep") {
     override fun effect(currentPlayer: Player, target: Player, allPlayers: List<Player>) {
         val distance = currentPlayer.calculateDistanceTo(target, allPlayers.size)
-        if (target.hand.isNotEmpty() && distance <= 1) {
-            executeWithImpeccableCheck(currentPlayer, target, allPlayers) {
-                val stolenCard = target.hand.removeAt(0)
-                currentPlayer.hand.add(stolenCard)
-                println("${currentPlayer.name} uses $Name to steal a card from ${target.name}")
-                currentPlayer.hand.remove(this)
-                CardDeck.discardCard(this)
 
-                println("${currentPlayer.name} 使用了順手牽羊，從 ${target.name} 處偷了 1 張牌。")
-            }
-        } else {
-            println("${currentPlayer.name} cannot use $Name on ${target.name} (distance: $distance > 1 or target has no cards)")
-            println("${currentPlayer.name} 無法對 ${target.name} 使用順手牽羊（距離：$distance > 1 或目標沒有牌）。")
+        if (distance > 1) {
+            println("${currentPlayer.name} cannot use $Name on ${target.name} (distance: $distance > 1)")
+            return
+        }
+
+        if (target.eWeapon == null && target.eArmor == null && target.eHorsePlus == null && target.eHorseMinus == null && target.hand.isEmpty()) {
+            println("${currentPlayer.name} cannot use $Name on ${target.name} (target has no cards or equipment)")
+            return
+        }
+
+        executeWithImpeccableCheck(currentPlayer, target, allPlayers) {
+            handlePriorityAction(
+                currentPlayer = currentPlayer,
+                target = target,
+                actionType = ActionType.STEAL,
+                onStealEquipment = { equipment ->
+                    when (equipment) {
+                        is Weapon -> currentPlayer.eWeapon = equipment
+                        is Armor -> currentPlayer.eArmor = equipment
+                        is HorsePlus -> currentPlayer.eHorsePlus = equipment
+                        is HorseMinus -> currentPlayer.eHorseMinus = equipment
+                    }
+                },
+                onStealCard = { card ->
+                    currentPlayer.hand.add(card)
+                },
+                onDiscardEquipment = {},
+                onDiscardCard = {}
+            )
+
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
         }
     }
 }
@@ -305,19 +385,26 @@ class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Numbe
 // BBQCard
 class BBQCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Burning Bridges") {
     override fun effect(currentPlayer: Player, target: Player, allPlayers: List<Player>) {
-        if (target.hand.isNotEmpty()) {
-            executeWithImpeccableCheck(currentPlayer, target, allPlayers) {
-                val removedCard = target.hand.removeAt(0)
-                CardDeck.discardCard(removedCard)
-                println("${currentPlayer.name} uses $Name to discard a card from ${target.name}")
-                currentPlayer.hand.remove(this)
-                CardDeck.discardCard(this)
+        if (target.eWeapon == null && target.eArmor == null && target.eHorsePlus == null && target.eHorseMinus == null && target.hand.isEmpty()) {
+            println("${currentPlayer.name} cannot use $Name on ${target.name} (target has no cards or equipment)")
+            return
+        }
 
-                println("${currentPlayer.name} 使用了過河拆橋，丟棄了 ${target.name} 的 1 張牌。")
-            }
-        } else {
-            println("${currentPlayer.name} cannot use $Name on ${target.name} (target has no cards)")
-            println("${currentPlayer.name} 無法對 ${target.name} 使用過河拆橋（目標沒有牌")
+        executeWithImpeccableCheck(currentPlayer, target, allPlayers) {
+            handlePriorityAction(
+                currentPlayer = currentPlayer,
+                target = target,
+                actionType = ActionType.DISCARD,
+                onStealEquipment = {},
+                onStealCard = {},
+                onDiscardEquipment = {},
+                onDiscardCard = { card ->
+                    CardDeck.discardCard(card)
+                }
+            )
+
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
         }
     }
 }
