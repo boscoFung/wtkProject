@@ -63,7 +63,7 @@ class RebelStrategy : Strategy() {
         return null
     }
     override fun isFriendly(otherStrategy: Strategy): Boolean {
-        return otherStrategy is LoyalistStrategy
+        return otherStrategy is RebelStrategy
     }
 }
 

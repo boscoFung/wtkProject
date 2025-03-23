@@ -38,7 +38,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override var currentAttackRange: Int = baseAttackRange
 
 
-    var strategy: Strategy? = null
+    override var strategy: Strategy? = null
 
     private val observers: MutableList<Observer> = mutableListOf()
 
@@ -254,6 +254,12 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
         println("$name is in the Play Phase.")
 
+        // Automatically use PeachCards if HP is less than maxHP
+        while (currentHP < maxHP && hasPeachCard() && !GeneralManager.isGameOver()) {
+            val peachCard = hand.first { it is PeachCard } as PeachCard
+            peachCard.use(this)
+        }
+
         hand.filterIsInstance<EquipmentCard>().forEach { card ->
             playCard(card)
         }
@@ -346,6 +352,7 @@ interface Player {
     var seat: Int
     var horsePlus: Int
     var horseMinus: Int
+    var strategy: Strategy?
 
     var eWeapon: Equipment?
     var eArmor: Equipment?
@@ -461,6 +468,62 @@ interface Player {
         if (currentHP > 0) {
             println("${name} is not defeated (HP: $currentHP).")
             return
+        }
+        // PeachCard intervention: Ask all players to contribute PeachCards
+        val allPlayers = GeneralManager.getPlayerList() // All players, alive or not, for consistency
+        val startIndex = allPlayers.indexOf(this)
+        val orderedPlayers = (allPlayers.drop(startIndex) + allPlayers.take(startIndex))
+        val peachContributions = mutableListOf<Pair<Player, PeachCard>>() // Store contributor and their PeachCard
+
+        println("${name} is about to be defeated with HP: $currentHP. Asking players for PeachCards...")
+        for (player in orderedPlayers) {
+            val general = player as? General
+            if (general == null || (general.currentHP <= 0 && general != this)) {
+                println("Skipping ${player.name}: ${if (general == null) "Not a General" else "Dead player"}")
+                continue
+            } // Skip dead players except self
+
+            val hasPeach = player.hasPeachCard()
+            if (!hasPeach) {
+                println("${player.name} has no PeachCard to offer.")
+                continue
+            }
+
+            val isFriendly = if (general == this) true // Player always tries to save themselves
+            else general.strategy?.isFriendly(this.strategy ?: return) ?: false
+
+            if (isFriendly) {
+                val peachCard = player.hand.first { it is PeachCard } as PeachCard
+                println("${player.name} offers a PeachCard to save ${name}.")
+                peachContributions.add(Pair(player, peachCard))
+                player.hand.remove(peachCard) // Temporarily remove from hand
+            }
+        }
+
+        // Calculate if enough PeachCards to save the player
+        val peachesNeeded = 1 - currentHP // Number of Peaches needed to reach HP 1
+        if (peachContributions.size >= peachesNeeded) {
+            println("Enough PeachCards (${peachContributions.size}) collected to save ${name} (needed: $peachesNeeded).")
+            peachContributions.forEachIndexed { index, (contributor, peachCard) ->
+                if (index < peachesNeeded) { // Only use the required number
+                    currentHP++
+                    println("${contributor.name}'s $peachCard.Name increases ${name}'s HP to $currentHP.")
+                    CardDeck.discardCard(peachCard)
+                } else {
+                    // Return unused PeachCards
+                    contributor.hand.add(peachCard)
+                    println("${contributor.name}'s unused $peachCard.Name is returned to their hand.")
+                }
+            }
+            println("${name} is saved from defeat! Current HP: $currentHP")
+            return // Exit without marking as defeated
+        } else {
+            println("Not enough PeachCards (${peachContributions.size} collected, needed: $peachesNeeded) to save ${name}.")
+            // Return all PeachCards to contributors
+            peachContributions.forEach { (contributor, peachCard) ->
+                contributor.hand.add(peachCard)
+                println("${contributor.name}'s $peachCard.Name is returned to their hand.")
+            }
         }
         // Discard all cards in the player's hand to the discard pile
         if (hand.isNotEmpty()) {
