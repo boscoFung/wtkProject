@@ -36,9 +36,10 @@ abstract class Weapon(player: Player) : Equipment(player) {
         println("${player.name} unequipped $name")
     }
 }
-interface WeaponEffect {
-    fun applyEffect(attacker: Player, target: Player, attackCard: Card?)
-}
+
+//interface WeaponEffect {
+//    fun applyEffect(attacker: Player, target: Player, attackCard: Card?)
+//}
 
 abstract class Armor(player: Player) : Equipment(player) {
     abstract override val name: String
