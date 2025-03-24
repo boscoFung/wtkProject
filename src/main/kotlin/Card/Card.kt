@@ -1,6 +1,9 @@
 package Card
 
 import General.*
+enum class Suit {
+    Spades, Hearts, Diamonds, Clubs
+}
 
 abstract class Card(open val Suit: String, open val Number: String, open val Name: String) {
     override fun toString() : String {

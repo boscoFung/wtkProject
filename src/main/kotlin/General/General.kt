@@ -99,22 +99,37 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
     }
 
-    override fun beingAttacked() {
-        if (currentHP <= 0) {
-            println("$name is already defeated and cannot be attacked.")
-            return
-        }
-        println("$name is being attacked.")
-        if (eArmor != null) {
-            eArmor!!.beingAttacked()  // Calls EightTrigrams.beingAttacked()
-        } else {
-            dodgeAttack()  // Default behavior if no armor
-        }
-        if (currentHP <= 0) {
-            // The killer will be set in playPhase() when calling beingAttacked()
-            handleDefeat()
-        }
+//    override fun beingAttacked() {
+//        if (currentHP <= 0) {
+//            println("$name is already defeated and cannot be attacked.")
+//            return
+//        }
+//        println("$name is being attacked.")
+//        if (eArmor != null) {
+//            eArmor!!.beingAttacked()  // Calls EightTrigrams.beingAttacked()
+//        } else {
+//            dodgeAttack()  // Default behavior if no armor
+//        }
+//        if (currentHP <= 0) {
+//            // The killer will be set in playPhase() when calling beingAttacked()
+//            handleDefeat()
+//        }
+//    }
+override fun beingAttacked() {
+    if (currentHP <= 0) {
+        println("$name is already defeated and cannot be attacked.")
+        return
     }
+    println("$name is being attacked.")
+    if (eArmor != null) {
+        eArmor!!.beingAttacked()
+    } else {
+        dodgeAttack()
+    }
+    if (currentHP <= 0) {
+        handleDefeat(null)
+    }
+}
 
     override fun dodgeAttack() {
         val dodged = hasDodgeCard()
@@ -138,12 +153,13 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
     }
 
-    private fun checkAndUsePeach(killer: Player? = null) {
+    open fun checkAndUsePeach(killer: Player? = null) {
         if (defeated) {
             println("$name is already defeated and cannot use Peach cards.")
             return
         }
 
+        // 先檢查自己的桃
         while (currentHP < maxHP && currentHP > 0 && hasPeachCard()) {
             val peachCard = hand.firstOrNull { it is PeachCard } as? PeachCard
             if (peachCard != null) {
@@ -151,16 +167,12 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             }
         }
 
+        // 如果瀕死，觸發救援技能 (only for SunQuan, handled in override)
         if (currentHP <= 0 && !defeated) {
             println("$name is in a dying state (HP: $currentHP).")
-            while (currentHP <= 0 && hasPeachCard() && !defeated) {
-                val peachCard = hand.firstOrNull { it is PeachCard } as? PeachCard
-                if (peachCard != null) {
-                    peachCard.use(this)
-                }
-            }
             if (currentHP <= 0 && !defeated) {
-                handleDefeat(killer) // 傳遞 killer
+                println("$name could not be rescued and remains in a dying state.")
+                handleDefeat(killer)
             }
         }
     }
@@ -204,7 +216,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
     }
 
-    private fun playEffectCards() {
+    fun playEffectCards() {
         while (hand.any { it is EffectCard } && !defeated && !GeneralManager.isGameOver()) {
             val effectCard = hand.firstOrNull { it is EffectCard } as? EffectCard ?: break
             println("${name} is attempting to play effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
