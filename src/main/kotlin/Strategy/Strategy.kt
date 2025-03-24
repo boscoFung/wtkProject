@@ -73,6 +73,7 @@ class LoyalistStrategy : Strategy() {
         return otherStrategy is LordStrategy || otherStrategy is LoyalistStrategy
     }
 }
+
 class RebelStrategy : Strategy() {
     override fun whomToAttack(
         currentPlayer: Player,

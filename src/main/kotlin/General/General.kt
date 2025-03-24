@@ -80,10 +80,22 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         if (eArmor != null) {
             eArmor!!.beingAttacked()
         } else {
-            dodgeAttack()
-        }
-        if (currentHP <= 0) {
-            handleDefeat(attacker) // Pass the attacker as the killer
+            val dodged = hasDodgeCard()
+            if (dodged) {
+                println("$name dodged attack by spending a dodge card.")
+                removeCardOfType(DodgeCard::class.java)
+            } else {
+                currentHP--
+                println("$name can't dodge the attack, current HP is $currentHP.")
+                if (currentHP <= 0) {
+                    handleDefeat(attacker)
+                } else {
+                    checkAndUsePeach(attacker)
+                }
+            }
+            if (strategy is LordStrategy) {
+                notifyObservers(dodged)
+            }
         }
     }
 
@@ -110,9 +122,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             println("$name dodged attack by spending a dodge card.")
             removeCardOfType(DodgeCard::class.java)
         } else {
-            currentHP--
-            println("$name can't dodge the attack, current HP is $currentHP.")
-            checkAndUsePeach()
+            reduceHP(1)
         }
         if (strategy is LordStrategy) {
             notifyObservers(dodged)
@@ -128,7 +138,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
     }
 
-    private fun checkAndUsePeach() {
+    private fun checkAndUsePeach(killer: Player? = null) {
         if (defeated) {
             println("$name is already defeated and cannot use Peach cards.")
             return
@@ -150,7 +160,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
                 }
             }
             if (currentHP <= 0 && !defeated) {
-                handleDefeat()
+                handleDefeat(killer) // 傳遞 killer
             }
         }
     }
