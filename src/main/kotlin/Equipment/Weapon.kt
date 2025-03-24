@@ -2,11 +2,12 @@ package Equipment
 import Card.AttackCard
 import Card.Card
 import Card.CardDeck
+import Card.EquipmentCard
 import General.*
 import Strategy.*
 import kotlin.random.Random
 
-class ZhugeCrossbow(player: Player) : Weapon(player) {
+class ZhugeCrossbow(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Zhuge Crossbow"
     override val attackLimitModifier: Int = -1
     override val attackRangeModifier: Int = 0
@@ -20,7 +21,8 @@ class ZhugeCrossbow(player: Player) : Weapon(player) {
         target.attack(attacker)
     }
 }
-class RockCleavingAxe(player: Player) : Weapon(player) {
+
+class RockCleavingAxe(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Rock Cleaving Axe"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
@@ -54,10 +56,22 @@ class RockCleavingAxe(player: Player) : Weapon(player) {
             } else {
                 // Discard equipped items (priority: horse -> armor -> weapon)
                 when {
-                    player.eHorsePlus != null -> player.eHorsePlus = null
-                    player.eHorseMinus != null -> player.eHorseMinus = null
-                    player.eArmor != null -> player.eArmor = null
-                    player.eWeapon != null -> (player.eWeapon as Weapon).unequip()
+                    player.eHorsePlus != null -> {
+                        player.eHorsePlus?.unequip()
+                        player.eHorsePlus = null
+                    }
+                    player.eHorseMinus != null -> {
+                        player.eHorseMinus?.unequip()
+                        player.eHorseMinus = null
+                    }
+                    player.eArmor != null -> {
+                        player.eArmor?.unequip()
+                        player.eArmor = null
+                    }
+                    player.eWeapon != null -> {
+                        (player.eWeapon as Weapon).unequip()
+                        player.eWeapon = null
+                    }
                 }
                 println("${player.name} discards an equipped item")
             }
@@ -66,7 +80,7 @@ class RockCleavingAxe(player: Player) : Weapon(player) {
     }
 }
 
-class SkyPiercingHalberd(player: Player) : Weapon(player) {
+class SkyPiercingHalberd(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Sky Piercing Halberd"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 3
@@ -107,7 +121,7 @@ class SkyPiercingHalberd(player: Player) : Weapon(player) {
     }
 }
 
-class YinYangSwords(player: Player) : Weapon(player) {
+class YinYangSwords(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Yin-Yang Swords"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
@@ -132,7 +146,7 @@ class YinYangSwords(player: Player) : Weapon(player) {
     }
 }
 
-class GreenDragonBlade(player: Player) : Weapon(player) {
+class GreenDragonBlade(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Green Dragon Blade"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
@@ -154,7 +168,7 @@ class GreenDragonBlade(player: Player) : Weapon(player) {
     }
 }
 
-class BlueSteelBlade(player: Player) : Weapon(player) {
+class BlueSteelBlade(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Blue Steel Blade"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 1
@@ -163,13 +177,14 @@ class BlueSteelBlade(player: Player) : Weapon(player) {
 
     override fun attackTarget(attacker: Player, target: Player, attackCard: Card?) {
         println("${attacker.name} uses $name with ${attackCard?.Suit} ${attackCard?.Number} - ${attackCard?.Name} to attack ${target.name}, ignoring armor")
+        val sTarget = target.eArmor
         target.eArmor = null // Temporarily ignore armor
         target.attack(attacker)
-        // Armor is not re-equipped here; assume it’s not destroyed, just bypassed
+        target.eArmor = sTarget
     }
 }
 
-class SerpentSpear(player: Player) : Weapon(player) {
+class SerpentSpear(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Serpent Spear"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 2
@@ -192,7 +207,7 @@ class SerpentSpear(player: Player) : Weapon(player) {
     }
 }
 
-class KirinBow(player: Player) : Weapon(player) {
+class KirinBow(player: Player, card: EquipmentCard) : Weapon(player, card) {
     override val name: String = "Kirin Bow"
     override val attackLimitModifier: Int = 1
     override val attackRangeModifier: Int = 4
@@ -206,13 +221,14 @@ class KirinBow(player: Player) : Weapon(player) {
         if (target.currentHP < initialHP && (target.eHorsePlus != null || target.eHorseMinus != null)) {
             println("${attacker.name} can discard a horse from ${target.name} with $name (Simulating choice: Yes)")
             if (target.eHorsePlus != null) {
+                target.eHorsePlus?.unequip()
                 target.eHorsePlus = null
                 println("${target.name}'s +1 Horse discarded")
             } else if (target.eHorseMinus != null) {
+                target.eHorseMinus?.unequip()
                 target.eHorseMinus = null
                 println("${target.name}'s -1 Horse discarded")
             }
         }
     }
-
 }

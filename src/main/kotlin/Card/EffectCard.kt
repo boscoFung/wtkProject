@@ -10,7 +10,7 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
         STEAL, DISCARD
     }
 
-    fun effect(currentPlayer: Player, allPlayers: List<Player>) {
+    open fun effect(currentPlayer: Player, allPlayers: List<Player>) {
         println("$Name requires a specific target")
     }
 
@@ -41,7 +41,6 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
         when {
             target.eWeapon != null -> {
                 val weapon = target.eWeapon as Weapon
-                weapon.unequip()
                 when (actionType) {
                     ActionType.STEAL -> onStealEquipment(weapon)
                     ActionType.DISCARD -> onDiscardEquipment(weapon)
@@ -50,7 +49,6 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
             }
             target.eArmor != null -> {
                 val armor = target.eArmor as Armor
-                armor.unequip()
                 when (actionType) {
                     ActionType.STEAL -> onStealEquipment(armor)
                     ActionType.DISCARD -> onDiscardEquipment(armor)
@@ -59,7 +57,6 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
             }
             target.eHorsePlus != null -> {
                 val horsePlus = target.eHorsePlus as HorsePlus
-                horsePlus.unequip()
                 when (actionType) {
                     ActionType.STEAL -> onStealEquipment(horsePlus)
                     ActionType.DISCARD -> onDiscardEquipment(horsePlus)
@@ -68,7 +65,6 @@ abstract class TargetedCard(Suit: String, Number: String, Name: String) : Effect
             }
             target.eHorseMinus != null -> {
                 val horseMinus = target.eHorseMinus as HorseMinus
-                horseMinus.unequip()
                 when (actionType) {
                     ActionType.STEAL -> onStealEquipment(horseMinus)
                     ActionType.DISCARD -> onDiscardEquipment(horseMinus)
@@ -179,11 +175,18 @@ class BumperHarvestCard(Suit: String, Number: String) : GroupCard(Suit, Number, 
         val affectedPlayers = allPlayers.filter { it.currentHP > 0 }
         val playersToDraw = checkImpeccableForGroup(currentPlayer, affectedPlayers, allPlayers, isBenefit = true)
 
+        if (playersToDraw.isEmpty()) {
+            println("${currentPlayer.name}'s $Name was canceled by Impeccable")
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
+            return
+        }
+
         playersToDraw.forEachIndexed { index, player ->
             if (cards.isNotEmpty()) {
                 val card = cards[index % cards.size]
                 player.hand.add(card)
-                println("${player.name} receives a card from $Name")
+                println("${player.name} receives a card from $Name: ${card.Suit} ${card.Number} - ${card.Name}")
                 drawResults.add("${player.name} drew 1 card")
             }
         }
@@ -281,6 +284,10 @@ class RainingArrowsCard(Suit: String, Number: String) : GroupCard(Suit, Number, 
 
 class SOONCard(Suit: String, Number: String) : SelfCard(Suit, Number, "Something out of nothing") {
     override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
+        if (currentPlayer.currentHP <= 0) {
+            println("${currentPlayer.name} is already defeated and cannot use $Name")
+            return
+        }
         executeWithImpeccableCheck(currentPlayer, allPlayers) {
             val cardsDrawn = 2
             var actualCardsDrawn = 0
@@ -340,6 +347,12 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
             println("${currentPlayer.name} used $Name against ${target.name}, ${results.joinToString(", ")}.")
         }
     }
+
+    override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
+        println("$Name requires a specific target, but no valid target was found.")
+        currentPlayer.hand.remove(this) // 確保移除卡片
+        CardDeck.discardCard(this) // 丟棄卡片
+    }
 }
 
 class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Stealing Sheep") {
@@ -348,11 +361,15 @@ class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Numbe
 
         if (distance > 1) {
             println("${currentPlayer.name} cannot use $Name on ${target.name} (distance: $distance > 1)")
+            currentPlayer.hand.remove(this) // 移除卡片
+            CardDeck.discardCard(this) // 丟棄卡片
             return
         }
 
         if (target.eWeapon == null && target.eArmor == null && target.eHorsePlus == null && target.eHorseMinus == null && target.hand.isEmpty()) {
             println("${currentPlayer.name} cannot use $Name on ${target.name} (target has no cards or equipment)")
+            currentPlayer.hand.remove(this) // 移除卡片
+            CardDeck.discardCard(this) // 丟棄卡片
             return
         }
 
@@ -362,11 +379,14 @@ class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Numbe
                 target = target,
                 actionType = ActionType.STEAL,
                 onStealEquipment = { equipment ->
+                    val stolenCard = equipment.getCard()
+                    equipment.unequip()
+                    currentPlayer.hand.add(stolenCard)
                     when (equipment) {
-                        is Weapon -> currentPlayer.eWeapon = equipment
-                        is Armor -> currentPlayer.eArmor = equipment
-                        is HorsePlus -> currentPlayer.eHorsePlus = equipment
-                        is HorseMinus -> currentPlayer.eHorseMinus = equipment
+                        is Weapon -> target.eWeapon = null
+                        is Armor -> target.eArmor = null
+                        is HorsePlus -> target.eHorsePlus = null
+                        is HorseMinus -> target.eHorseMinus = null
                     }
                 },
                 onStealCard = { card ->
@@ -385,8 +405,18 @@ class StealingSheepCard(Suit: String, Number: String) : TargetedCard(Suit, Numbe
 // BBQCard
 class BBQCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Burning Bridges") {
     override fun effect(currentPlayer: Player, target: Player, allPlayers: List<Player>) {
-        if (target.eWeapon == null && target.eArmor == null && target.eHorsePlus == null && target.eHorseMinus == null && target.hand.isEmpty()) {
+        if (target.currentHP <= 0) {
+            println("${currentPlayer.name} cannot use $Name on ${target.name} (target is already defeated)")
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
+            return
+        }
+
+        if (target.eWeapon == null && target.eArmor == null && target.eHorsePlus == null &&
+            target.eHorseMinus == null && target.hand.isEmpty()) {
             println("${currentPlayer.name} cannot use $Name on ${target.name} (target has no cards or equipment)")
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
             return
         }
 
@@ -397,9 +427,17 @@ class BBQCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Burnin
                 actionType = ActionType.DISCARD,
                 onStealEquipment = {},
                 onStealCard = {},
-                onDiscardEquipment = {},
+                onDiscardEquipment = { equipment ->
+                    equipment.unequip() // 卸下裝備
+                    when (equipment) {
+                        is Weapon -> target.eWeapon = null
+                        is Armor -> target.eArmor = null
+                        is HorsePlus -> target.eHorsePlus = null
+                        is HorseMinus -> target.eHorseMinus = null
+                    }
+                },
                 onDiscardCard = { card ->
-                    CardDeck.discardCard(card)
+                    CardDeck.discardCard(card) // 丟棄卡片
                 }
             )
 

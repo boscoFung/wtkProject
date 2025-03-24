@@ -1,21 +1,37 @@
 package Equipment
 import Card.Card
+import Card.CardDeck
+import Card.EquipmentCard
 import General.*
 import kotlin.random.Random
 
 
-abstract class Equipment(protected val player: Player) {
+abstract class Equipment(protected val player: Player, card: EquipmentCard) {
     abstract val name: String
+    private val card: EquipmentCard = card
+    protected open var isEquipped = true
+
     open fun beingAttacked() {
         player.beingAttacked()
     }
+
+    open fun unequip() {
+        if (!isEquipped) {
+            println("${player.name} already unequipped $name, skipping")
+            return
+        }
+        isEquipped = false
+        CardDeck.discardCard(card)
+        println("${player.name} unequipped $name and discarded it to the discard pile")
+    }
+
+    fun getCard(): EquipmentCard = card
 }
 
-abstract class Weapon(player: Player) : Equipment(player) {
+abstract class Weapon(player: Player, card: EquipmentCard) : Equipment(player, card) {
     abstract override val name: String
-    abstract val attackRangeModifier: Int  // 攻擊距離增量
-    abstract val attackLimitModifier: Int  // 攻擊上限增量（-1 表示無限）
-
+    abstract val attackRangeModifier: Int
+    abstract val attackLimitModifier: Int
 
     open fun onEquip() {
         if (attackLimitModifier == -1) {
@@ -29,24 +45,26 @@ abstract class Weapon(player: Player) : Equipment(player) {
     abstract fun canAttack(attacksThisTurn: Int): Boolean
     abstract fun attackTarget(attacker: Player, target: Player, attackCard: Card?)
 
-    open fun unequip() {
+    override fun unequip() {
+        super.unequip()
         player.restoreAttackLimit()
         player.restoreAttackRange()
         player.eWeapon = null
-        println("${player.name} unequipped $name")
     }
+
+
 }
 
 //interface WeaponEffect {
 //    fun applyEffect(attacker: Player, target: Player, attackCard: Card?)
 //}
 
-abstract class Armor(player: Player) : Equipment(player) {
+abstract class Armor(player: Player, card: EquipmentCard) : Equipment(player, card) {
     abstract override val name: String
-
-    open fun unequip() {
+    private var storedCard: EquipmentCard? = card
+    override fun unequip() {
+        super.unequip()
         player.eArmor = null
-        println("${player.name} unequipped $name")
     }
 }
 
@@ -54,28 +72,34 @@ interface ArmorEffect {
     fun applyEffect(player: Player, onBeingAttacked: () -> Unit)
 }
 
-abstract class HorsePlus(player: Player) : Equipment(player) {
+abstract class HorsePlus(player: Player, card: EquipmentCard) : Equipment(player, card) {
     abstract override val name: String
+    override var isEquipped = true
     init {
         player.horsePlus += 1
     }
 
-    open fun unequip() {
+    override fun unequip() {
+        if (!isEquipped) return
         player.horsePlus -= 1
+        isEquipped = false
+        super.unequip()
         player.eHorsePlus = null
-        println("${player.name} unequipped $name (+1 Horse)")
     }
 }
 
-abstract class HorseMinus(player: Player) : Equipment(player) {
+abstract class HorseMinus(player: Player, card: EquipmentCard) : Equipment(player, card) {
     abstract override val name: String
+    override var isEquipped = true
     init {
         player.horseMinus += 1
     }
 
-    open fun unequip() {
+    override fun unequip() {
+        if (!isEquipped) return
         player.horseMinus -= 1
+        isEquipped = false
+        super.unequip()
         player.eHorseMinus = null
-        println("${player.name} unequipped $name (-1 Horse)")
     }
 }

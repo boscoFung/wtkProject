@@ -1,11 +1,12 @@
 import Card.CardDeck
 import Card.DodgeCard
+import Card.EquipmentCard
 import Equipment.Armor
 import Equipment.ArmorEffect
 import General.*
 import kotlin.random.Random
 
-class EightTrigrams(player: Player) : Armor(player) {
+class EightTrigrams(player: Player, card: EquipmentCard) : Armor(player, card) {
     override val name: String = "Eight Trigrams"
 
     private val eightTrigramsEffect = EightTrigramsEffect()

@@ -18,7 +18,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override var defeated: Boolean = false
     override var numOfCards: Int = 4
     override val hand: MutableList<Card> = mutableListOf() //手牌
-
+    override var isAttackLimitUnlimited: Boolean = false
     override var skipPlayPhase: Boolean = false
     override val judgementCommands: MutableList<Command> = mutableListOf()
 
@@ -38,7 +38,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     override var currentAttackRange: Int = baseAttackRange
 
 
-    override var strategy: Strategy? = null
+    var strategy: Strategy? = null
 
     private val observers: MutableList<Observer> = mutableListOf()
 
@@ -86,6 +86,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             handleDefeat(attacker) // Pass the attacker as the killer
         }
     }
+
     override fun beingAttacked() {
         if (currentHP <= 0) {
             println("$name is already defeated and cannot be attacked.")
@@ -111,27 +112,66 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         } else {
             currentHP--
             println("$name can't dodge the attack, current HP is $currentHP.")
+            checkAndUsePeach()
         }
         if (strategy is LordStrategy) {
             notifyObservers(dodged)
         }
     }
 
+    fun reduceHP(amount: Int, killer: Player? = null) {
+        currentHP -= amount
+        println("$name loses $amount HP, current HP is $currentHP.")
+        checkAndUsePeach()
+        if (currentHP <= 0 && !defeated) {
+            handleDefeat(killer)
+        }
+    }
+
+    private fun checkAndUsePeach() {
+        if (defeated) {
+            println("$name is already defeated and cannot use Peach cards.")
+            return
+        }
+
+        while (currentHP < maxHP && currentHP > 0 && hasPeachCard()) {
+            val peachCard = hand.firstOrNull { it is PeachCard } as? PeachCard
+            if (peachCard != null) {
+                peachCard.use(this)
+            }
+        }
+
+        if (currentHP <= 0 && !defeated) {
+            println("$name is in a dying state (HP: $currentHP).")
+            while (currentHP <= 0 && hasPeachCard() && !defeated) {
+                val peachCard = hand.firstOrNull { it is PeachCard } as? PeachCard
+                if (peachCard != null) {
+                    peachCard.use(this)
+                }
+            }
+            if (currentHP <= 0 && !defeated) {
+                handleDefeat()
+            }
+        }
+    }
+
     override fun playCard(card: Card) {
         when (card) {
             is EightTrigramsCard -> {
-                val armor = EightTrigrams(this)
+                val armor = EightTrigrams(this, card) // 傳遞 card
                 equipArmor(armor)
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
             is HorseCard -> {
-                val horse = HorseFactory.createHorse(this, card.Name, card.type)
+                val horse = HorseFactory.createHorse(this, card.Name, card.type, card) // 傳遞 card
                 when (card.type) {
                     HorseType.PLUS -> {
+                        eHorsePlus?.unequip()
                         eHorsePlus = horse
                         println("$name equipped ${horse.name} (+1 Horse)")
                     }
                     HorseType.MINUS -> {
+                        eHorseMinus?.unequip()
                         eHorseMinus = horse
                         println("$name equipped ${horse.name} (-1 Horse)")
                     }
@@ -139,12 +179,12 @@ abstract class General(override val name: String, override val maxHP: Int, overr
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
             is WeaponCard -> {
-                val weapon = WeaponFactory.createWeapon(this, card.Name)
+                val weapon = WeaponFactory.createWeapon(this, card.Name, card) // 傳遞 card
                 if (eWeapon != null) {
                     (eWeapon as Weapon).unequip()
                 }
                 eWeapon = weapon
-                weapon.onEquip() // ✅ 加上這行
+                weapon.onEquip()
                 println("$name equipped ${weapon.name}")
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
@@ -152,35 +192,68 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     }
 
     private fun playEffectCards() {
-        val effectCards = hand.filterIsInstance<EffectCard>().toList()
-        for (effectCard in effectCards) {
-            if (GeneralManager.isGameOver()) break
-
+        while (hand.any { it is EffectCard } && !defeated && !GeneralManager.isGameOver()) {
+            val effectCard = hand.firstOrNull { it is EffectCard } as? EffectCard ?: break
+            println("${name} is attempting to play effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
             when (effectCard) {
                 is TargetedCard -> {
-                    val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                    val maxDistance = when (effectCard) {
+                        is StealingSheepCard -> 1
+                        is DuelCard -> null
+                        is BBQCard -> null
+                        else -> null
+                    }
+                    val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList(), maxDistance)
                     if (target != null) {
                         effectCard.effect(this, target, GeneralManager.getAlivePlayerList())
                     } else {
                         effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                        if (hand.contains(effectCard)) {
+                            hand.remove(effectCard)
+                            CardDeck.discardCard(effectCard)
+                            println("${name} discarded invalid effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
+                        }
                     }
                 }
                 is GroupCard -> {
                     effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                    if (hand.contains(effectCard)) {
+                        hand.remove(effectCard)
+                        CardDeck.discardCard(effectCard)
+                        println("${name} discarded group effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
+                    }
                 }
                 is SelfCard -> {
                     effectCard.effect(this, GeneralManager.getAlivePlayerList())
+                    if (hand.contains(effectCard)) {
+                        hand.remove(effectCard)
+                        CardDeck.discardCard(effectCard)
+                        println("${name} discarded self effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
+                    }
                 }
             }
+            println("${name} has ${hand.size} card(s) remaining after playing effect card.")
         }
     }
+
     override fun calculateDistanceTo(target: Player, totalPlayers: Int): Int {
         val seat1 = this.seat
         val seat2 = target.seat
         val clockwise = Math.abs(seat1 - seat2)
         val counterclockwise = totalPlayers - clockwise
         val baseDistance = minOf(clockwise, counterclockwise)
-        return maxOf(1, baseDistance - this.horseMinus + target.horsePlus)
+        val adjustedDistance = maxOf(1, baseDistance - this.horseMinus + target.horsePlus)
+        println("Distance from ${this.name} to ${target.name}: base=$baseDistance, adjusted=$adjustedDistance (my -1=${this.horseMinus}, their +1=${target.horsePlus})")
+        return adjustedDistance
+    }
+
+    fun equipWeapon(weapon: Weapon) {
+        if (eWeapon != null) {
+            eWeapon?.unequip()
+        }
+        eWeapon = weapon
+        weapon.onEquip()
+        println("${name} equipped ${weapon.name}")
     }
 
     override fun calculateAttackRange(): Int {
@@ -215,7 +288,6 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             return
         }
 
-        // 如果有武器，使用武器的攻擊邏輯
         if (eWeapon != null) {
             val weapon = eWeapon as Weapon
             if (weapon.canAttack(attacksThisTurn)) {
@@ -232,7 +304,7 @@ abstract class General(override val name: String, override val maxHP: Int, overr
                 println("$name has reached the attack limit this turn (attacks: $attacksThisTurn) with ${weapon.name}.")
             }
         } else {
-            // 沒有武器，使用原始攻擊邏輯
+            // 使用原始攻擊邏輯
             if (attacksThisTurn < currentAttackLimit) {
                 val attackCard = removeCardOfType(AttackCard::class.java)
                 if (attackCard != null) {
@@ -247,6 +319,10 @@ abstract class General(override val name: String, override val maxHP: Int, overr
     }
 
     override fun playPhase() {
+        if (defeated) {
+            println("$name is already defeated and skips their play phase.")
+            return
+        }
         if (skipPlayPhase) {
             println("$name is skipping the Play Phase.")
             skipPlayPhase = false
@@ -254,20 +330,24 @@ abstract class General(override val name: String, override val maxHP: Int, overr
         }
         println("$name is in the Play Phase.")
 
-        // Automatically use PeachCards if HP is less than maxHP
-        while (currentHP < maxHP && hasPeachCard() && !GeneralManager.isGameOver()) {
-            val peachCard = hand.first { it is PeachCard } as PeachCard
-            peachCard.use(this)
+        println("Checking for Peach cards: HP = $currentHP, Max HP = $maxHP, Has Peach = ${hasPeachCard()}")
+        while (currentHP < maxHP && hasPeachCard() && !defeated && !GeneralManager.isGameOver()) {
+            val peachCard = hand.firstOrNull { it is PeachCard } as? PeachCard
+            if (peachCard != null) {
+                peachCard.use(this)
+            } else {
+                break
+            }
         }
 
         hand.filterIsInstance<EquipmentCard>().forEach { card ->
+            if (defeated) return
             playCard(card)
         }
-
         playEffectCards()
-
         var canAttack = true
         while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+            if (defeated) return
             val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
             if (target == null) {
                 println("$name has no valid target to attack.")
@@ -277,12 +357,11 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             val range = calculateAttackRange()
             if (distance > range) {
                 println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
-                canAttack = false // 停止嘗試攻擊
+                canAttack = false
                 break
             }
             performAttack()
         }
-
         if (hasJudgementCard("Acedia")) {
             val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
             if (acediaTarget != null) {
@@ -352,7 +431,7 @@ interface Player {
     var seat: Int
     var horsePlus: Int
     var horseMinus: Int
-    var strategy: Strategy?
+    var isAttackLimitUnlimited: Boolean
 
     var eWeapon: Equipment?
     var eArmor: Equipment?
@@ -363,13 +442,16 @@ interface Player {
     var baseAttackLimit: Int
     var baseAttackRange: Int
 
-    // 新增：當前攻擊上限和攻擊距離
     var currentAttackLimit: Int
     var currentAttackRange: Int
 
     fun modifyAttackLimit(newLimit: Int) {
         currentAttackLimit = newLimit
-        println("$name's attack limit modified to $currentAttackLimit")
+        if (newLimit == Int.MAX_VALUE) {
+            println("$name's attack limit modified to unlimited")
+        } else {
+            println("$name's attack limit modified to $currentAttackLimit")
+        }
     }
 
     fun modifyAttackRange(newRange: Int) {
@@ -399,6 +481,7 @@ interface Player {
         println("$name is being attacked.")
         dodgeAttack()
     }
+
     fun dodgeAttack() {
         if (hasDodgeCard()) {
             println("$name dodged attack by spending a dodge card.")
@@ -451,79 +534,27 @@ interface Player {
             if (card != null) {
                 println("${name} plays $cardName on ${target.name}.")
                 when (card) {
-                    is AcediaCard -> card.applyTo(target, card)
+                    is AcediaCard -> card.applyTo(target, card) // 立即執行
                     is LightningCard -> card.applyTo(target, card)
-                    // Add more JudgementCard types here in the future
                 }
             }
         } else {
             println("${name} does not have the judgement card '$cardName' to play.")
         }
     }
+
     fun handleDefeat(killer: Player? = null) {
         if (defeated) {
             println("${name} has already been defeated. Skipping defeat logic.")
             return
         }
+        if (judgementCommands.isNotEmpty()) {
+            println("${name} was defeated with pending judgement commands (e.g., Acedia, Lightning). Clearing them.")
+            judgementCommands.clear()
+        }
         if (currentHP > 0) {
             println("${name} is not defeated (HP: $currentHP).")
             return
-        }
-        // PeachCard intervention: Ask all players to contribute PeachCards
-        val allPlayers = GeneralManager.getPlayerList() // All players, alive or not, for consistency
-        val startIndex = allPlayers.indexOf(this)
-        val orderedPlayers = (allPlayers.drop(startIndex) + allPlayers.take(startIndex))
-        val peachContributions = mutableListOf<Pair<Player, PeachCard>>() // Store contributor and their PeachCard
-
-        println("${name} is about to be defeated with HP: $currentHP. Asking players for PeachCards...")
-        for (player in orderedPlayers) {
-            val general = player as? General
-            if (general == null || (general.currentHP <= 0 && general != this)) {
-                println("Skipping ${player.name}: ${if (general == null) "Not a General" else "Dead player"}")
-                continue
-            } // Skip dead players except self
-
-            val hasPeach = player.hasPeachCard()
-            if (!hasPeach) {
-                println("${player.name} has no PeachCard to offer.")
-                continue
-            }
-
-            val isFriendly = if (general == this) true // Player always tries to save themselves
-            else general.strategy?.isFriendly(this.strategy ?: return) ?: false
-
-            if (isFriendly) {
-                val peachCard = player.hand.first { it is PeachCard } as PeachCard
-                println("${player.name} offers a PeachCard to save ${name}.")
-                peachContributions.add(Pair(player, peachCard))
-                player.hand.remove(peachCard) // Temporarily remove from hand
-            }
-        }
-
-        // Calculate if enough PeachCards to save the player
-        val peachesNeeded = 1 - currentHP // Number of Peaches needed to reach HP 1
-        if (peachContributions.size >= peachesNeeded) {
-            println("Enough PeachCards (${peachContributions.size}) collected to save ${name} (needed: $peachesNeeded).")
-            peachContributions.forEachIndexed { index, (contributor, peachCard) ->
-                if (index < peachesNeeded) { // Only use the required number
-                    currentHP++
-                    println("${contributor.name}'s $peachCard.Name increases ${name}'s HP to $currentHP.")
-                    CardDeck.discardCard(peachCard)
-                } else {
-                    // Return unused PeachCards
-                    contributor.hand.add(peachCard)
-                    println("${contributor.name}'s unused $peachCard.Name is returned to their hand.")
-                }
-            }
-            println("${name} is saved from defeat! Current HP: $currentHP")
-            return // Exit without marking as defeated
-        } else {
-            println("Not enough PeachCards (${peachContributions.size} collected, needed: $peachesNeeded) to save ${name}.")
-            // Return all PeachCards to contributors
-            peachContributions.forEach { (contributor, peachCard) ->
-                contributor.hand.add(peachCard)
-                println("${contributor.name}'s $peachCard.Name is returned to their hand.")
-            }
         }
         // Discard all cards in the player's hand to the discard pile
         if (hand.isNotEmpty()) {
@@ -556,18 +587,19 @@ interface Player {
         // Notify GeneralManager to check game-over conditions
         GeneralManager.checkGameOver()
     }
+
     fun takeTurn() {
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         preparationPhase()
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         judgementPhase()
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         drawPhase()
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         playPhase()
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         discardPhase()
-        if (GeneralManager.isGameOver()) return
+        if (defeated || GeneralManager.isGameOver()) return
         finalPhase()
     }
 
@@ -577,12 +609,12 @@ interface Player {
     }
 
     fun judgementPhase() {
-//        println("$name is in the Judgement Phase.")
-        val iterator = judgementCommands.iterator()
+        val commandsToExecute = judgementCommands.toList()
+        judgementCommands.clear()
+        val iterator = commandsToExecute.iterator()
         while (iterator.hasNext()) {
             val command = iterator.next()
             command(this)
-            iterator.remove()
         }
     }
 

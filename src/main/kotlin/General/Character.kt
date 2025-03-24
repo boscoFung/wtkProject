@@ -6,7 +6,7 @@ import Strategy.*
 import General.*
 
 //Lord
-class CaoCao : WeiGeneral("Cao Cao", 1, "Male") {
+class CaoCao : WeiGeneral("Cao Cao", 5, "Male") {
     fun entourage(): Boolean {
         println("[Entourage] $name activates Lord Skill Entourage.")
         return next?.handleRequest() ?: false
@@ -50,7 +50,7 @@ class CaoCao : WeiGeneral("Cao Cao", 1, "Male") {
         }
     }
 }
-class LiuBei : General("Liu Bei", 4,"Male") {
+class LiuBei : General("Liu Bei", 5,"Male") {
     var state: State = UnhealthyState()
 
     override fun playPhase() {
