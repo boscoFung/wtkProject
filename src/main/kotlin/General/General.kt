@@ -157,22 +157,25 @@ abstract class General(override val name: String, override val maxHP: Int, overr
 
     override fun playCard(card: Card) {
         when (card) {
+
             is EightTrigramsCard -> {
                 val armor = EightTrigrams(this, card) // 傳遞 card
                 equipArmor(armor)
                 removeCardOfType(EquipmentCard::class.java, card.Name, discard = false)
             }
             is HorseCard -> {
-                val horse = HorseFactory.createHorse(this, card.Name, card.type, card) // 傳遞 card
+                val horse = HorseFactory.createHorse(this, card.Name, card.type, card)
                 when (card.type) {
                     HorseType.PLUS -> {
                         eHorsePlus?.unequip()
                         eHorsePlus = horse
+                        horsePlus = 1
                         println("$name equipped ${horse.name} (+1 Horse)")
                     }
                     HorseType.MINUS -> {
                         eHorseMinus?.unequip()
                         eHorseMinus = horse
+                        horseMinus = 1
                         println("$name equipped ${horse.name} (-1 Horse)")
                     }
                 }
@@ -265,55 +268,24 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             println("$name has no Attack card to use.")
             return
         }
-
-        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList(), calculateAttackRange())
         if (target == null) {
             println("$name has no valid target to attack.")
             return
         }
-
-        val targetIdentity = when ((target as General).strategy) {
-            is LordStrategy -> "lord"
-            is LoyalistStrategy -> "loyalist"
-            is RebelStrategy -> "rebel"
-            is SpyStrategy -> "spy"
-            else -> "unknown"
-        }
-        val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-        val range = calculateAttackRange()
-
-        // 檢查是否可以攻擊（距離）
-        if (distance > range) {
-            println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
-            return
-        }
-
-        if (eWeapon != null) {
-            val weapon = eWeapon as Weapon
-            if (weapon.canAttack(attacksThisTurn)) {
-                val attackCard = removeCardOfType(AttackCard::class.java)
-                if (attackCard != null) {
-                    val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-                    val range = calculateAttackRange()
-                    println("$name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
-
-                    attacksThisTurn++
-                    weapon.attackTarget(this, target, attackCard)
-                }
+        val attackCard = removeCardOfType(AttackCard::class.java)
+        if (attackCard != null) {
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            val range = calculateAttackRange()
+            val targetIdentity = (target as General).strategy?.javaClass?.simpleName?.replace("Strategy", "")?.toLowerCase() ?: "unknown"
+            if (eWeapon != null) {
+                println("$name uses ${eWeapon!!.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                attacksThisTurn++
+                (eWeapon as Weapon).attackTarget(this, target, attackCard)
             } else {
-                println("$name has reached the attack limit this turn (attacks: $attacksThisTurn) with ${weapon.name}.")
-            }
-        } else {
-            // 使用原始攻擊邏輯
-            if (attacksThisTurn < currentAttackLimit) {
-                val attackCard = removeCardOfType(AttackCard::class.java)
-                if (attackCard != null) {
-                    println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
-                    attacksThisTurn++
-                    target.attack(this)
-                }
-            } else {
-                println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+                println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                attacksThisTurn++
+                target.attack(this)
             }
         }
     }
@@ -345,23 +317,31 @@ abstract class General(override val name: String, override val maxHP: Int, overr
             playCard(card)
         }
         playEffectCards()
-        var canAttack = true
-        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+
+        var attemptedTargets = mutableSetOf<Player>() // 記錄已嘗試的目標，避免重複
+        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver()) {
             if (defeated) return
-            val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            val range = calculateAttackRange()
+            val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
+            val target = strategy?.whomToAttack(this, alivePlayers, range)
             if (target == null) {
-                println("$name has no valid target to attack.")
+                println("$name has no valid target to attack within range $range.")
                 break
             }
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            val range = calculateAttackRange()
-            if (distance > range) {
+            if (distance <= range) {
+                performAttack()
+                attemptedTargets.clear() // 重置嘗試列表，以便下次攻擊重新選擇
+            } else {
                 println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
-                canAttack = false
-                break
+                attemptedTargets.add(target) // 記錄不可攻擊的目標
+                if (attemptedTargets.size >= alivePlayers.size) {
+                    println("$name has no remaining targets within range $range.")
+                    break
+                }
             }
-            performAttack()
         }
+
         if (hasJudgementCard("Acedia")) {
             val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
             if (acediaTarget != null) {
@@ -555,6 +535,22 @@ interface Player {
         if (currentHP > 0) {
             println("${name} is not defeated (HP: $currentHP).")
             return
+        }
+        if (eWeapon != null) {
+            (eWeapon as Weapon).unequip()
+            eWeapon = null
+        }
+        if (eArmor != null) {
+            (eArmor as Armor).unequip()
+            eArmor = null
+        }
+        if (eHorsePlus != null) {
+            (eHorsePlus as HorsePlus).unequip()
+            eHorsePlus = null
+        }
+        if (eHorseMinus != null) {
+            (eHorseMinus as HorseMinus).unequip()
+            eHorseMinus = null
         }
         // Discard all cards in the player's hand to the discard pile
         if (hand.isNotEmpty()) {

@@ -81,7 +81,7 @@ abstract class HorsePlus(player: Player, card: EquipmentCard) : Equipment(player
 
     override fun unequip() {
         if (!isEquipped) return
-        player.horsePlus -= 1
+        player.horsePlus += 1
         isEquipped = false
         super.unequip()
         player.eHorsePlus = null
