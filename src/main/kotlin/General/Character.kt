@@ -212,7 +212,7 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
                 return
             }
             super.discardPhase()
-            val card = CardDeck.drawCard() // 從牌庫抽牌
+            val card = CardDeck.drawCard() // 從牌庫抽牌asd
             if (card != null) {
                 hand.add(card) // 加入手牌
                 println("[Beauty Outshining the Moon] $name now has ${hand.size} card(s).")

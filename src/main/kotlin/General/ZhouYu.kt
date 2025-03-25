@@ -21,7 +21,7 @@ class ZhouYu : WuGeneral("Zhou Yu", 3, "Male") {
         for (i in 1..cardsDrawn) {
             val card = CardDeck.drawCard() // 從牌庫抽牌
             if (card != null) {
-                hand.add(card) // 加入手牌
+                hand.add(card) // 加入手牌asfasf
                 actualCardsDrawn++
             } else {
                 println("The deck is empty. No more cards can be drawn.")
