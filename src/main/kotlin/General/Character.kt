@@ -222,7 +222,156 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
         }
     }
 
-    class GuanYu : General("Guan Yu", 4, "Male") {}
+    class GuanYu : General("Guan Yu", 4, "Male") {
+        // Override hasAttackCard to include cards with "heart" or "diamonds" suit
+        override fun hasAttackCard(): Boolean {
+            return hand.any { it is AttackCard || it.Suit in listOf("Hearts", "Diamonds") }
+        }
+
+        // Custom method to remove a card for attacking (prioritize ATTACK, then any "heart" or "diamonds" card)
+        private fun removeAttackOrHeartDiamondsCard(): Card? {
+            // Prioritize removing an ATTACK card if available
+            val attackCard = hand.firstOrNull { it is AttackCard }
+            if (attackCard != null) {
+                hand.remove(attackCard)
+                CardDeck.discardCard(attackCard)
+                return attackCard
+            }
+            // If no ATTACK card, use a "heart" or "diamonds" card
+            val heartOrDiamondsCard = hand.firstOrNull { it.Suit in listOf("Hearts", "Diamonds") }
+            if (heartOrDiamondsCard != null) {
+                hand.remove(heartOrDiamondsCard)
+                CardDeck.discardCard(heartOrDiamondsCard)
+                return heartOrDiamondsCard
+            }
+            return null
+        }
+
+        override fun performAttack() {
+            if (!hasAttackCard()) {
+                println("$name has no card to use for attacking.")
+                return
+            }
+
+            val range = calculateAttackRange()
+            val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }
+            val target = strategy?.whomToAttack(this, alivePlayers, range)
+            if (target == null) {
+                println("$name has no valid target to attack within range $range.")
+                return
+            }
+
+            val targetIdentity = when ((target as General).strategy) {
+                is LordStrategy -> "lord"
+                is LoyalistStrategy -> "loyalist"
+                is RebelStrategy -> "rebel"
+                is SpyStrategy -> "spy"
+                else -> "unknown"
+            }
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            if (distance > range || !target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
+                return
+            }
+
+            if (eWeapon != null) {
+                val weapon = eWeapon as Weapon
+                if (weapon.canAttack(attacksThisTurn)) {
+                    val attackCard = removeAttackOrHeartDiamondsCard()
+                    if (attackCard != null) {
+                        val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                        val range = calculateAttackRange()
+                        if (attackCard is AttackCard) {
+                            println("$name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                        } else {
+                            println("[Warrior Saint] $name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} as an Attack card to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                        }
+                        attacksThisTurn++
+                        weapon.attackTarget(this, target, attackCard)
+                    }
+                } else {
+                    println("$name has reached the attack limit this turn (attacks: $attacksThisTurn) with ${weapon.name}.")
+                }
+            } else {
+                if (attacksThisTurn < currentAttackLimit) {
+                    val attackCard = removeAttackOrHeartDiamondsCard()
+                    if (attackCard != null) {
+                        if (attackCard is AttackCard) {
+                            println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                        } else {
+                            println("[Warrior Saint] $name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} as an Attack card to attack a $targetIdentity, ${target.name}")
+                        }
+                        attacksThisTurn++
+                        target.attack(this)
+                    }
+                } else {
+                    println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+                }
+            }
+        }
+
+        // Override playPhase to prevent infinite loop (similar to Zhao Yun and Zhang Fei fixes)
+        override fun playPhase() {
+            if (skipPlayPhase) {
+                println("$name is skipping the Play Phase.")
+                skipPlayPhase = false
+                return
+            }
+            println("$name is in the Play Phase.")
+
+            // Automatically use PeachCards if HP is less than maxHP
+            while (currentHP < maxHP && hasPeachCard() && !GeneralManager.isGameOver()) {
+                val peachCard = hand.first { it is PeachCard } as PeachCard
+                peachCard.use(this)
+            }
+
+            hand.filterIsInstance<EquipmentCard>().forEach { card ->
+                playCard(card)
+            }
+
+            playEffectCards()
+
+            // Guan Yu's attack phase: Can attack as long as he has Attack cards or "heart"/"diamonds" cards and valid targets
+            var canAttack = true
+            val attemptedTargets = mutableSetOf<Player>()
+            val totalAlivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }.size // Fixed size for comparison
+            while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+                val range = calculateAttackRange()
+                val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
+                // Pass the attack range to whomToAttack to ensure only in-range targets are selected
+                val target = strategy?.whomToAttack(this, alivePlayers, range)
+                if (target == null) {
+                    println("$name has no valid target to attack within range $range.")
+                    break
+                }
+                val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                if (distance > range || !target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
+                    println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
+                    attemptedTargets.add(target)
+                    if (attemptedTargets.size >= totalAlivePlayers) {
+                        println("$name has no remaining targets within range $range.")
+                        canAttack = false
+                    }
+                    continue
+                }
+                performAttack()
+                attemptedTargets.clear() // Reset attempted targets after a successful attack
+            }
+
+            if (hasJudgementCard("Acedia")) {
+                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                if (acediaTarget != null) {
+                    playJudgementCard(acediaTarget, "Acedia")
+                }
+            }
+            if (hasJudgementCard("Lightning")) {
+                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                if (lightningTarget != null) {
+                    playJudgementCard(lightningTarget, "Lightning")
+                }
+            }
+        }
+    }
     class ZhangFei : General("Zhang Fei", 4, "Male") {
         override fun playPhase() {
         if (skipPlayPhase) {
