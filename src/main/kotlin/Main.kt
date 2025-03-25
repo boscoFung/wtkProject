@@ -6,7 +6,7 @@ import General.*
 
 
 fun main() {
-    val totalParticipants = 6
+    val totalParticipants = 8
     val lordFactory = LordFactory()
     val nonLordFactory = NonLordFactory()
 

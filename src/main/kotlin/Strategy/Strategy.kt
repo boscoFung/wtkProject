@@ -114,20 +114,22 @@ class SpyStrategy : Strategy() {
         allPlayers: List<Player>,
         maxDistance: Int?
     ): Player? {
-        var rebels = allPlayers.filter { it is General && it.strategy is RebelStrategy && it.currentHP > 0 }
-        rebels = filterByDistance(currentPlayer, rebels, allPlayers, maxDistance)
-        if (rebels.isNotEmpty()) {
-            return rebels.random()
+        val range = maxDistance ?: currentPlayer.calculateAttackRange()
+        var lords = allPlayers.filter {
+            it is General && it.strategy is LordStrategy && it.currentHP > 0 &&
+                    currentPlayer.calculateDistanceTo(it, GeneralManager.getPlayerCount()) <= range &&
+                    it.canBeTargeted(currentPlayer, AttackCard("", "0"))
         }
-        var loyalists = allPlayers.filter { it is General && it.strategy is LoyalistStrategy && it.currentHP > 0 }
-        loyalists = filterByDistance(currentPlayer, loyalists, allPlayers, maxDistance)
-        if (loyalists.isNotEmpty()) {
-            return loyalists.random()
-        }
-        var lords = allPlayers.filter { it is General && it.strategy is LordStrategy && it.currentHP > 0 }
-        lords = filterByDistance(currentPlayer, lords, allPlayers, maxDistance)
         if (lords.isNotEmpty()) {
             return lords.random()
+        }
+        var loyalists = allPlayers.filter {
+            it is General && it.strategy is LoyalistStrategy && it.currentHP > 0 &&
+                    currentPlayer.calculateDistanceTo(it, GeneralManager.getPlayerCount()) <= range &&
+                    it.canBeTargeted(currentPlayer, AttackCard("", "0"))
+        }
+        if (loyalists.isNotEmpty()) {
+            return loyalists.random()
         }
         return null
     }

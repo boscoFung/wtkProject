@@ -268,19 +268,20 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
         // Zhang Fei's "Berserk" ability: Can attack as long as he has Attack cards and valid targets
         var canAttack = true
         var attemptedTargets = mutableSetOf<Player>()
+            val totalAlivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }.size
         while (hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
             val range = calculateAttackRange()
             val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
-            val target = strategy?.whomToAttack(this, alivePlayers)
+            val target = strategy?.whomToAttack(this, alivePlayers, range)
             if (target == null) {
                 println("$name has no valid target to attack.")
                 break
             }
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            if (distance > range) {
-                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+            if (distance > range || !target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted)")
                 attemptedTargets.add(target)
-                if (attemptedTargets.size >= alivePlayers.size) {
+                if (attemptedTargets.size >= totalAlivePlayers) {
                     println("$name has no remaining targets within range $range.")
                     canAttack = false
                 }
@@ -415,16 +416,77 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
                 notifyObservers(dodged)
             }
         }
+        override fun playPhase() {
+            if (skipPlayPhase) {
+                println("$name is skipping the Play Phase.")
+                skipPlayPhase = false
+                return
+            }
+            println("$name is in the Play Phase.")
 
+            // Automatically use PeachCards if HP is less than maxHP
+            while (currentHP < maxHP && hasPeachCard() && !GeneralManager.isGameOver()) {
+                val peachCard = hand.first { it is PeachCard } as PeachCard
+                peachCard.use(this)
+            }
+
+            hand.filterIsInstance<EquipmentCard>().forEach { card ->
+                playCard(card)
+            }
+
+            playEffectCards()
+
+            // Zhao Yun's attack phase: Can attack as long as he has Attack or Dodge cards and valid targets
+            var canAttack = true
+            val attemptedTargets = mutableSetOf<Player>()
+            val totalAlivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }.size // Fixed size for comparison
+            while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+                val range = calculateAttackRange()
+                val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
+                // Pass the attack range to whomToAttack to ensure only in-range targets are selected
+                val target = strategy?.whomToAttack(this, alivePlayers, range)
+                if (target == null) {
+                    println("$name has no valid target to attack within range $range.")
+                    break
+                }
+                val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                if (distance > range || !target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
+                    println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
+                    attemptedTargets.add(target)
+                    if (attemptedTargets.size >= totalAlivePlayers) {
+                        println("$name has no remaining targets within range $range.")
+                        canAttack = false
+                    }
+                    continue
+                }
+                performAttack()
+                attemptedTargets.clear() // Reset attempted targets after a successful attack
+            }
+
+            if (hasJudgementCard("Acedia")) {
+                val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                if (acediaTarget != null) {
+                    playJudgementCard(acediaTarget, "Acedia")
+                }
+            }
+            if (hasJudgementCard("Lightning")) {
+                val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+                if (lightningTarget != null) {
+                    playJudgementCard(lightningTarget, "Lightning")
+                }
+            }
+        }
         override fun performAttack() {
             if (!hasAttackCard()) {
                 println("$name has no card to use for attacking.")
                 return
             }
 
-            val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            val range = calculateAttackRange()
+            val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }
+            val target = strategy?.whomToAttack(this, alivePlayers, range)
             if (target == null) {
-                println("$name has no valid target to attack.")
+                println("$name has no valid target to attack within range $range.")
                 return
             }
 
@@ -436,10 +498,8 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
                 else -> "unknown"
             }
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            val range = calculateAttackRange()
-
-            if (distance > range) {
-                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+            if (distance > range || !target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
                 return
             }
 
