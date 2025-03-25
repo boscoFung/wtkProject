@@ -217,8 +217,9 @@ override fun beingAttacked() {
     }
 
     fun playEffectCards() {
+        val processedCards = mutableSetOf<Card>()
         while (hand.any { it is EffectCard } && !defeated && !GeneralManager.isGameOver()) {
-            val effectCard = hand.firstOrNull { it is EffectCard } as? EffectCard ?: break
+            val effectCard = hand.firstOrNull { it is EffectCard && it !in processedCards } as? EffectCard ?: break
             println("${name} is attempting to play effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
             when (effectCard) {
                 is TargetedCard -> {
@@ -233,11 +234,11 @@ override fun beingAttacked() {
                         effectCard.effect(this, target, GeneralManager.getAlivePlayerList())
                     } else {
                         effectCard.effect(this, GeneralManager.getAlivePlayerList())
-                        if (hand.contains(effectCard)) {
-                            hand.remove(effectCard)
-                            CardDeck.discardCard(effectCard)
-                            println("${name} discarded invalid effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
-                        }
+                    }
+                    if (hand.contains(effectCard)) {
+                        hand.remove(effectCard)
+                        CardDeck.discardCard(effectCard)
+                        println("${name} discarded invalid effect card: ${effectCard.Suit} ${effectCard.Number} - ${effectCard.Name}")
                     }
                 }
                 is GroupCard -> {
@@ -257,6 +258,7 @@ override fun beingAttacked() {
                     }
                 }
             }
+            processedCards.add(effectCard)
             println("${name} has ${hand.size} card(s) remaining after playing effect card.")
         }
     }
@@ -285,31 +287,54 @@ override fun beingAttacked() {
         return currentAttackRange
     }
 
+    override fun canBeTargeted(source: Player, card: Card): Boolean {
+        return currentHP > 0
+    }
+
     override fun performAttack() {
         if (!hasAttackCard()) {
             println("$name has no Attack card to use.")
             return
         }
-        val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList(), calculateAttackRange())
-        if (target == null) {
-            println("$name has no valid target to attack.")
+        val attackCard = removeCardOfType(AttackCard::class.java, discard = false) // 不立即棄牌
+        if (attackCard == null) {
+            println("$name failed to retrieve an Attack card.")
             return
         }
-        val attackCard = removeCardOfType(AttackCard::class.java)
-        if (attackCard != null) {
+        val range = calculateAttackRange()
+        val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this }
+        var target = strategy?.whomToAttack(this, alivePlayers, range)
+        var attemptedTargets = mutableSetOf<Player>()
+
+        while (target != null) {
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            val range = calculateAttackRange()
             val targetIdentity = (target as General).strategy?.javaClass?.simpleName?.replace("Strategy", "")?.toLowerCase() ?: "unknown"
-            if (eWeapon != null) {
-                println("$name uses ${eWeapon!!.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
-                attacksThisTurn++
-                (eWeapon as Weapon).attackTarget(this, target, attackCard)
+            if (distance <= range && target.canBeTargeted(this, attackCard)) {
+                if (eWeapon != null) {
+                    println("$name uses ${eWeapon!!.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                    attacksThisTurn++
+                    (eWeapon as Weapon).attackTarget(this, target, attackCard)
+                } else {
+                    println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                    attacksThisTurn++
+                    target.attack(this)
+                }
+                CardDeck.discardCard(attackCard)
+                return
             } else {
-                println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
-                attacksThisTurn++
-                target.attack(this)
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
+                attemptedTargets.add(target)
+                val remainingTargets = alivePlayers.filter { it !in attemptedTargets }
+                target = strategy?.whomToAttack(this, remainingTargets, range)
+                if (target == null || attemptedTargets.size >= alivePlayers.size) {
+                    println("$name has no valid target to attack within range $range.")
+                    hand.add(attackCard)
+                    return
+                }
             }
         }
+        println("$name has no valid target to attack.")
+        hand.add(attackCard)
     }
 
     override fun playPhase() {
@@ -340,23 +365,22 @@ override fun beingAttacked() {
         }
         playEffectCards()
 
-        var attemptedTargets = mutableSetOf<Player>() // 記錄已嘗試的目標，避免重複
-        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !GeneralManager.isGameOver()) {
-            if (defeated) return
+        var attemptedTargets = mutableSetOf<Player>()
+        while (attacksThisTurn < currentAttackLimit && hasAttackCard() && !defeated && !GeneralManager.isGameOver()) {
             val range = calculateAttackRange()
             val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
             val target = strategy?.whomToAttack(this, alivePlayers, range)
-            if (target == null) {
+            if (target == null || alivePlayers.isEmpty()) {
                 println("$name has no valid target to attack within range $range.")
                 break
             }
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            if (distance <= range) {
+            if (distance <= range && target.canBeTargeted(this, AttackCard("Dummy", "0"))) { // 假卡檢查可攻擊性
                 performAttack()
-                attemptedTargets.clear() // 重置嘗試列表，以便下次攻擊重新選擇
+                attemptedTargets.clear() // 攻擊成功後重置
             } else {
-                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
-                attemptedTargets.add(target) // 記錄不可攻擊的目標
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
+                attemptedTargets.add(target)
                 if (attemptedTargets.size >= alivePlayers.size) {
                     println("$name has no remaining targets within range $range.")
                     break
@@ -701,5 +725,9 @@ interface Player {
 
     fun finalPhase() {
 //        println("$name is in the Final Phase.")
+    }
+
+    fun canBeTargeted(source: Player, card: Card): Boolean {
+        return true
     }
 }

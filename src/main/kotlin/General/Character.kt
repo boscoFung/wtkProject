@@ -199,7 +199,6 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
 
     //Non-lord
     class ZhenJi : WeiGeneral("Zhen Ji", 3, "Female")
-    class ZhugeLiang : General("Zhuge Liang", 3, "Male")
     class SimaYi : WeiGeneral("Sima Yi", 3, "Male")
     class XuChu : WeiGeneral("Xu Chu", 4, "Male")
     class XiahouDun : WeiGeneral("Xiahou Dun", 4, "Male")

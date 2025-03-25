@@ -307,6 +307,11 @@ class SOONCard(Suit: String, Number: String) : SelfCard(Suit, Number, "Something
 
 class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel") {
     override fun effect(currentPlayer: Player, target: Player, allPlayers: List<Player>) {
+        if (!target.canBeTargeted(currentPlayer, this)) {
+            println("${currentPlayer.name} cannot target ${target.name} with $Name due to restrictions.")
+            return
+        }
+
         executeWithImpeccableCheck(currentPlayer, target, allPlayers) {
             println("${currentPlayer.name} initiates $Name with ${target.name}")
             val results = mutableListOf<String>()
@@ -326,10 +331,8 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
 
                     if (currentDuelist.currentHP <= 0) {
                         currentDuelist.handleDefeat(currentPlayer)
-                        duelActive = false
                         break
                     }
-
                     duelActive = false
                 } else {
                     val attackCard = currentDuelist.removeCardOfType(AttackCard::class.java)
@@ -343,15 +346,39 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
 
             currentPlayer.hand.remove(this)
             CardDeck.discardCard(this)
-
             println("${currentPlayer.name} used $Name against ${target.name}, ${results.joinToString(", ")}.")
         }
     }
 
     override fun effect(currentPlayer: Player, allPlayers: List<Player>) {
-        println("$Name requires a specific target, but no valid target was found.")
-        currentPlayer.hand.remove(this) // 確保移除卡片
-        CardDeck.discardCard(this) // 丟棄卡片
+        val alivePlayers = allPlayers.filter { it != currentPlayer && it.currentHP > 0 }
+        var target = (currentPlayer as? General)?.strategy?.whomToAttack(currentPlayer, alivePlayers, null)
+        var attemptedTargets = mutableSetOf<Player>()
+
+        if (target == null || alivePlayers.isEmpty()) {
+            println("$Name requires a specific target, but no valid target was found.")
+            currentPlayer.hand.remove(this)
+            CardDeck.discardCard(this)
+            return
+        }
+
+        while (target != null) {
+            if (target.canBeTargeted(currentPlayer, this)) {
+                effect(currentPlayer, target, allPlayers)
+                return
+            } else {
+                println("${currentPlayer.name} cannot target ${target.name} with $Name due to restrictions.")
+                attemptedTargets.add(target)
+                val remainingTargets = alivePlayers.filter { it !in attemptedTargets }
+                target = (currentPlayer as? General)?.strategy?.whomToAttack(currentPlayer, remainingTargets, null)
+                if (target == null || attemptedTargets.size >= alivePlayers.size) {
+                    println("$Name requires a specific target, but no valid target was found.")
+                    currentPlayer.hand.remove(this)
+                    CardDeck.discardCard(this)
+                    return
+                }
+            }
+        }
     }
 }
 

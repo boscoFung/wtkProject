@@ -181,4 +181,8 @@ object CardDeck {
         deck.shuffle() // Shuffle the deck
         println("Deck reset complete. New deck size: ${deck.size}")
     }
+    fun addToTop(card: Card) {
+        deck.add(0, card)
+        println("Added ${card.Suit} ${card.Number} - ${card.Name} to the top of the deck. Deck size: ${deck.size}")
+    }
 }
