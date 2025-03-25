@@ -706,6 +706,9 @@ interface Player {
 //        }
 //    }
 
+    fun getRequiredDuelCards(isOpponent: Boolean): Int {   //lubu
+        return 1 // default behavior
+    }
 
     fun attack(attacker: Player)
 

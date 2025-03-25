@@ -316,17 +316,19 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
             println("${currentPlayer.name} initiates $Name with ${target.name}")
             val results = mutableListOf<String>()
             var duelActive = true
-            var targetTurn = true
+            var targetTurn = true // Target (opponent) goes first
 
             while (duelActive) {
                 val currentDuelist = if (targetTurn) target else currentPlayer
                 val opponentName = if (targetTurn) target.name else currentPlayer.name
-
-                if (!currentDuelist.hasAttackCard()) {
+                val isOpponent = currentDuelist == target
+                val requiredCards = (currentPlayer as? General)?.getRequiredDuelCards(isOpponent) ?: 1
+                val attackCards = currentDuelist.hand.filterIsInstance<AttackCard>()
+                if (attackCards.size < requiredCards) {
                     val initialHP = currentDuelist.currentHP
                     currentDuelist.currentHP--
                     val damageDealt = initialHP - currentDuelist.currentHP
-                    println("$opponentName can't provide an Attack card, current HP is ${currentDuelist.currentHP}")
+                    println("$opponentName can't provide $requiredCards Attack card(s), current HP is ${currentDuelist.currentHP}")
                     results.add("$opponentName took $damageDealt damage")
 
                     if (currentDuelist.currentHP <= 0) {
@@ -335,11 +337,16 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
                     }
                     duelActive = false
                 } else {
-                    val attackCard = currentDuelist.removeCardOfType(AttackCard::class.java)
-                    if (attackCard != null) {
-                        println("$opponentName responds in $Name with an attack card (${attackCard.Suit} ${attackCard.Number})")
-                        results.add("$opponentName used an Attack card (${attackCard.Suit} ${attackCard.Number})")
+                    val usedCards = mutableListOf<AttackCard>()
+                    repeat(requiredCards) {
+                        val attackCard = currentDuelist.removeCardOfType(AttackCard::class.java, discard = false)
+                        if (attackCard != null) {
+                            usedCards.add(attackCard as AttackCard)
+                            CardDeck.discardCard(attackCard) // Only discard here
+                        }
                     }
+                    println("$opponentName responds in $Name with $requiredCards Attack card(s): ${usedCards.joinToString { "${it.Suit} ${it.Number}" }}")
+                    results.add("$opponentName used $requiredCards Attack card(s) (${usedCards.joinToString { "${it.Suit} ${it.Number}" }})")
                     targetTurn = !targetTurn
                 }
             }
