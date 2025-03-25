@@ -1,5 +1,6 @@
 package General
 import Card.*
+import Equipment.Weapon
 
 import Strategy.*
 import General.*
@@ -243,4 +244,112 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
     }
 
     class GuanYu : General("Guan Yu", 4, "Male") {}
-    class ZhangFei : General("Zhang Fei", 4, "Male") {}
+    class ZhangFei : General("Zhang Fei", 4, "Male") {
+        override fun playPhase() {
+        if (skipPlayPhase) {
+            println("$name is skipping the Play Phase.")
+            skipPlayPhase = false
+            return
+        }
+        println("$name is in the Play Phase.")
+
+        // Automatically use PeachCards if HP is less than maxHP
+        while (currentHP < maxHP && hasPeachCard() && !GeneralManager.isGameOver()) {
+            val peachCard = hand.first { it is PeachCard } as PeachCard
+            peachCard.use(this)
+        }
+
+        hand.filterIsInstance<EquipmentCard>().forEach { card ->
+            playCard(card)
+        }
+
+        playEffectCards()
+
+        // Zhang Fei's "Berserk" ability: Can attack as long as he has Attack cards and valid targets
+        var canAttack = true
+        var attemptedTargets = mutableSetOf<Player>()
+        while (hasAttackCard() && !GeneralManager.isGameOver() && canAttack) {
+            val range = calculateAttackRange()
+            val alivePlayers = GeneralManager.getAlivePlayerList().filter { it != this && it !in attemptedTargets }
+            val target = strategy?.whomToAttack(this, alivePlayers)
+            if (target == null) {
+                println("$name has no valid target to attack.")
+                break
+            }
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            if (distance > range) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+                attemptedTargets.add(target)
+                if (attemptedTargets.size >= alivePlayers.size) {
+                    println("$name has no remaining targets within range $range.")
+                    canAttack = false
+                }
+                continue
+            }
+            performAttack()
+            attemptedTargets.clear() // Reset attempted targets after a successful attack
+        }
+
+        if (hasJudgementCard("Acedia")) {
+            val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (acediaTarget != null) {
+                playJudgementCard(acediaTarget, "Acedia")
+            }
+        }
+        if (hasJudgementCard("Lightning")) {
+            val lightningTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (lightningTarget != null) {
+                playJudgementCard(lightningTarget, "Lightning")
+            }
+        }
+    }
+
+        override fun performAttack() {
+            if (!hasAttackCard()) {
+                println("$name has no Attack card to use.")
+                return
+            }
+
+            val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (target == null) {
+                println("$name has no valid target to attack.")
+                return
+            }
+
+            val targetIdentity = when ((target as General).strategy) {
+                is LordStrategy -> "lord"
+                is LoyalistStrategy -> "loyalist"
+                is RebelStrategy -> "rebel"
+                is SpyStrategy -> "spy"
+                else -> "unknown"
+            }
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            val range = calculateAttackRange()
+
+            if (distance > range) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+                return
+            }
+
+            if (eWeapon != null) {
+                val weapon = eWeapon as Weapon
+                // Zhang Fei's "Berserk" ability overrides the weapon's attack limit
+                val attackCard = removeCardOfType(AttackCard::class.java)
+                if (attackCard != null) {
+                    val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                    val range = calculateAttackRange()
+                    println("[Berserk] $name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                    attacksThisTurn++
+                    weapon.attackTarget(this, target, attackCard)
+                }
+            } else {
+                // No weapon equipped: Zhang Fei's "Berserk" ability allows unlimited attacks
+                val attackCard = removeCardOfType(AttackCard::class.java)
+                if (attackCard != null) {
+                    println("[Berserk] $name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                    attacksThisTurn++
+                    target.attack(this)
+                }
+            }
+        }
+    }
