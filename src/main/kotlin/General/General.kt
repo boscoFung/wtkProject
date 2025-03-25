@@ -288,7 +288,11 @@ override fun beingAttacked() {
     }
 
     override fun canBeTargeted(source: Player, card: Card): Boolean {
-        return currentHP > 0
+        if (currentHP <= 0) return false
+        if (source is General && this is General && strategy != null && source.strategy != null) {
+            return !strategy!!.isFriendly(source.strategy!!)
+        }
+        return true
     }
 
     override fun performAttack() {
@@ -296,7 +300,7 @@ override fun beingAttacked() {
             println("$name has no Attack card to use.")
             return
         }
-        val attackCard = removeCardOfType(AttackCard::class.java, discard = false) // 不立即棄牌
+        val attackCard = removeCardOfType(AttackCard::class.java, discard = false)
         if (attackCard == null) {
             println("$name failed to retrieve an Attack card.")
             return
@@ -328,13 +332,15 @@ override fun beingAttacked() {
                 target = strategy?.whomToAttack(this, remainingTargets, range)
                 if (target == null || attemptedTargets.size >= alivePlayers.size) {
                     println("$name has no valid target to attack within range $range.")
-                    hand.add(attackCard)
+                    CardDeck.discardCard(attackCard)
+                    attacksThisTurn++
                     return
                 }
             }
         }
         println("$name has no valid target to attack.")
-        hand.add(attackCard)
+        CardDeck.discardCard(attackCard)
+        attacksThisTurn++
     }
 
     override fun playPhase() {
@@ -375,9 +381,9 @@ override fun beingAttacked() {
                 break
             }
             val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
-            if (distance <= range && target.canBeTargeted(this, AttackCard("Dummy", "0"))) { // 假卡檢查可攻擊性
+            if (distance <= range && target.canBeTargeted(this, AttackCard("Dummy", "0"))) {
                 performAttack()
-                attemptedTargets.clear() // 攻擊成功後重置
+                attemptedTargets.clear()
             } else {
                 println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
                 attemptedTargets.add(target)
@@ -387,7 +393,6 @@ override fun beingAttacked() {
                 }
             }
         }
-
         if (hasJudgementCard("Acedia")) {
             val acediaTarget = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
             if (acediaTarget != null) {

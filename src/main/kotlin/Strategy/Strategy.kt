@@ -1,5 +1,6 @@
 package Strategy
 
+import Card.AttackCard
 import General.General
 import General.Player
 
@@ -80,17 +81,23 @@ class RebelStrategy : Strategy() {
         allPlayers: List<Player>,
         maxDistance: Int?
     ): Player? {
-        var lords = allPlayers.filter { it is General && it.strategy is LordStrategy && it.currentHP > 0 }
-        lords = filterByDistance(currentPlayer, lords, allPlayers, maxDistance)
+        val range = maxDistance ?: currentPlayer.calculateAttackRange()
+        var lords = allPlayers.filter {
+            it is General && it.strategy is LordStrategy && it.currentHP > 0 &&
+                    currentPlayer.calculateDistanceTo(it, GeneralManager.getPlayerCount()) <= range &&
+                    it.canBeTargeted(currentPlayer, AttackCard("", "0"))
+        }
         if (lords.isNotEmpty()) {
             return lords.random()
         }
-        var loyalists = allPlayers.filter { it is General && it.strategy is LoyalistStrategy && it.currentHP > 0 }
-        loyalists = filterByDistance(currentPlayer, loyalists, allPlayers, maxDistance)
+        var loyalists = allPlayers.filter {
+            it is General && it.strategy is LoyalistStrategy && it.currentHP > 0 &&
+                    currentPlayer.calculateDistanceTo(it, GeneralManager.getPlayerCount()) <= range &&
+                    it.canBeTargeted(currentPlayer, AttackCard("", "0"))
+        }
         if (loyalists.isNotEmpty()) {
             return loyalists.random()
         }
-        // No Lords or Loyalists left; stop attacking (Rebels don't target Spies in this logic)
         return null
     }
 
