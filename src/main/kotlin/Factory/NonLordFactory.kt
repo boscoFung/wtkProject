@@ -4,7 +4,7 @@ import Strategy.*
 import kotlin.random.Random
 
 open class NonLordFactory : GeneralFactory() {
-    private val nonLords = listOf(ZhenJi(), ZhugeLiang(), SimaYi(), ZhangFei(), ZhouYu(), XuChu(), XiahouDun(), DiaoChan())
+    private val nonLords = listOf(ZhenJi(), ZhugeLiang(), SimaYi(), ZhangFei(), ZhouYu(), XuChu(), XiahouDun(), DiaoChan(), ZhaoYun())
     protected val createdNonLords = mutableSetOf<String>()
     private val weiChainMessages = mutableListOf<String>()
 

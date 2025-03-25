@@ -353,3 +353,121 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
             }
         }
     }
+    class ZhaoYun : General("Zhao Yun", 4, "Male") {
+        // Override hasDodgeCard to include ATTACK cards
+        override fun hasDodgeCard(): Boolean {
+            return hand.any { it is DodgeCard || it is AttackCard }
+        }
+
+        // Override hasAttackCard to include DODGE cards
+        override fun hasAttackCard(): Boolean {
+            return hand.any { it is AttackCard || it is DodgeCard }
+        }
+
+        // Custom method to remove a card for dodging (prioritize DODGE, then ATTACK)
+        private fun removeDodgeOrAttackCard(): Card? {
+            // Prioritize removing a DODGE card if available
+            val dodgeCard = hand.firstOrNull { it is DodgeCard }
+            if (dodgeCard != null) {
+                hand.remove(dodgeCard)
+                CardDeck.discardCard(dodgeCard)
+                return dodgeCard
+            }
+            // If no DODGE card, use an ATTACK card
+            val attackCard = hand.firstOrNull { it is AttackCard }
+            if (attackCard != null) {
+                hand.remove(attackCard)
+                CardDeck.discardCard(attackCard)
+                return attackCard
+            }
+            return null
+        }
+
+        // Custom method to remove a card for attacking (prioritize ATTACK, then DODGE)
+        private fun removeAttackOrDodgeCard(): Card? {
+            // Prioritize removing an ATTACK card if available
+            val attackCard = hand.firstOrNull { it is AttackCard }
+            if (attackCard != null) {
+                hand.remove(attackCard)
+                CardDeck.discardCard(attackCard)
+                return attackCard
+            }
+            // If no ATTACK card, use a DODGE card
+            val dodgeCard = hand.firstOrNull { it is DodgeCard }
+            if (dodgeCard != null) {
+                hand.remove(dodgeCard)
+                CardDeck.discardCard(dodgeCard)
+                return dodgeCard
+            }
+            return null
+        }
+
+        override fun dodgeAttack() {
+            val dodged = hasDodgeCard()
+            if (dodged) {
+                val cardUsed = removeDodgeOrAttackCard()
+                println("[Dragon Heart] $name dodged attack by using ${cardUsed?.Suit} ${cardUsed?.Number} - ${cardUsed?.Name} as a Dodge card.")
+            } else {
+                currentHP--
+                println("$name can't dodge the attack, current HP is $currentHP.")
+            }
+            if (strategy is LordStrategy) {
+                notifyObservers(dodged)
+            }
+        }
+
+        override fun performAttack() {
+            if (!hasAttackCard()) {
+                println("$name has no card to use for attacking.")
+                return
+            }
+
+            val target = strategy?.whomToAttack(this, GeneralManager.getAlivePlayerList())
+            if (target == null) {
+                println("$name has no valid target to attack.")
+                return
+            }
+
+            val targetIdentity = when ((target as General).strategy) {
+                is LordStrategy -> "lord"
+                is LoyalistStrategy -> "loyalist"
+                is RebelStrategy -> "rebel"
+                is SpyStrategy -> "spy"
+                else -> "unknown"
+            }
+            val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+            val range = calculateAttackRange()
+
+            if (distance > range) {
+                println("$name cannot attack ${target.name} (distance: $distance > range: $range)")
+                return
+            }
+
+            if (eWeapon != null) {
+                val weapon = eWeapon as Weapon
+                if (weapon.canAttack(attacksThisTurn)) {
+                    val attackCard = removeAttackOrDodgeCard()
+                    if (attackCard != null) {
+                        val distance = calculateDistanceTo(target, GeneralManager.getAlivePlayerCount())
+                        val range = calculateAttackRange()
+                        println("[Dragon Heart] $name uses ${weapon.name} with ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name} (距離: $distance / 攻擊範圍: $range)")
+                        attacksThisTurn++
+                        weapon.attackTarget(this, target, attackCard)
+                    }
+                } else {
+                    println("$name has reached the attack limit this turn (attacks: $attacksThisTurn) with ${weapon.name}.")
+                }
+            } else {
+                if (attacksThisTurn < currentAttackLimit) {
+                    val attackCard = removeAttackOrDodgeCard()
+                    if (attackCard != null) {
+                        println("[Dragon Heart] $name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
+                        attacksThisTurn++
+                        target.attack(this)
+                    }
+                } else {
+                    println("$name has reached the attack limit this turn (attacks: $attacksThisTurn).")
+                }
+            }
+        }
+    }
