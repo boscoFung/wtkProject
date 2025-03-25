@@ -203,28 +203,7 @@ class SunQuan : WuGeneral("Sun Quan", 5, "Male") {
     class SimaYi : WeiGeneral("Sima Yi", 3, "Male")
     class XuChu : WeiGeneral("Xu Chu", 4, "Male")
     class XiahouDun : WeiGeneral("Xiahou Dun", 4, "Male")
-    class ZhouYu : WuGeneral("Zhou Yu", 3, "Male") {
-        override fun drawPhase() {
-            if (currentHP <= 0) {
-                println("$name is defeated and skips the Draw Phase.")
-                return
-            }
-            val cardsDrawn = 3
-            var actualCardsDrawn = 0
-            for (i in 1..cardsDrawn) {
-                val card = CardDeck.drawCard() // 從牌庫抽牌
-                if (card != null) {
-                    hand.add(card) // 加入手牌
-                    actualCardsDrawn++
-                } else {
-                    println("The deck is empty. No more cards can be drawn.")
-                    break
-                }
-            }
-            println("[Heroism] $name draws $actualCardsDrawn card(s) and now has ${hand.size} card(s).")
-            println("Deck Size: ${CardDeck.getDeckSize()}")
-        }
-    }
+
 
     class DiaoChan : General("Diao Chan", 3, "Female") {
         override fun discardPhase() {

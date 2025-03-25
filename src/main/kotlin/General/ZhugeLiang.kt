@@ -68,12 +68,13 @@ class ZhugeLiang : General("Zhuge Liang", 3, "Male") {
         println("Deck Size: ${CardDeck.getDeckSize()}")
     }
 
+    //空城
     override fun canBeTargeted(source: Player, card: Card): Boolean {
         val isAttackOrDuel = card is AttackCard || card is DuelCard
         if (isAttackOrDuel && hand.isEmpty()) {
             println("[KongCheng] $name has no cards and cannot be targeted by ${card.Name}.")
             return false
         }
-        return super.canBeTargeted(source, card) 
+        return super.canBeTargeted(source, card)
     }
 }
