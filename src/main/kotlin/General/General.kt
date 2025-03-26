@@ -85,17 +85,26 @@ abstract class General(override val name: String, override val maxHP: Int, overr
                 println("$name dodged attack by spending a dodge card.")
                 removeCardOfType(DodgeCard::class.java)
             } else {
-                currentHP--
-                println("$name can't dodge the attack, current HP is $currentHP.")
-                if (currentHP <= 0) {
-                    handleDefeat(attacker)
-                } else {
-                    checkAndUsePeach(attacker)
-                }
+                applyDamage(1, attacker, null)
             }
             if (strategy is LordStrategy) {
                 notifyObservers(dodged)
             }
+        }
+    }
+
+    //統一傷害流程
+    open fun applyDamage(amount: Int, source: Player?, damageCard: Card? = null) {
+        if (currentHP <= 0) {
+            println("$name is already defeated and cannot take damage.")
+            return
+        }
+        currentHP -= amount
+        println("$name takes $amount damage from ${source?.name ?: "an effect"}, current HP is $currentHP.")
+
+        checkAndUsePeach(source)
+        if (currentHP <= 0 && !defeated) {
+            handleDefeat(source)
         }
     }
 
@@ -322,8 +331,9 @@ override fun beingAttacked() {
                     println("$name spends ${attackCard.Suit} ${attackCard.Number} - ${attackCard.Name} to attack a $targetIdentity, ${target.name}")
                     attacksThisTurn++
                     target.attack(this)
+                    (target as General).applyDamage(1, this, attackCard) // 直接調用 applyDamage，傳入 attackCard
+                    return // 成功攻擊後結束
                 }
-                CardDeck.discardCard(attackCard)
                 return
             } else {
                 println("$name cannot attack ${target.name} (distance: $distance > range: $range or targeting restricted).")
@@ -517,7 +527,7 @@ interface Player {
         if (hasDodgeCard()) {
             println("$name dodged attack by spending a dodge card.")
         } else {
-            currentHP--
+
             println("$name can't dodge the attack, current HP is $currentHP.")
         }
     }
@@ -551,6 +561,7 @@ interface Player {
             null
         }
     }
+
     fun hasJudgementCard(name: String): Boolean {
         return hand.any { it is JudgementCard && it.Name == name }
     }

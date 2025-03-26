@@ -1,5 +1,6 @@
 package Factory
 import General.*
+import SimaYi
 import Strategy.*
 import kotlin.random.Random
 

@@ -151,7 +151,7 @@ abstract class GroupCard(Suit: String, Number: String, Name: String) : EffectCar
             damageResults.add("Dealt 0 damage to ${target.name}")
         } else {
             val initialHP = target.currentHP
-            target.currentHP--
+            (target as General).applyDamage(1, currentPlayer, this)
             val damageDealt = initialHP - target.currentHP
             println("${target.name} can't dodge $Name, current HP is ${target.currentHP}")
             damageResults.add("Dealt $damageDealt damage to ${target.name}")
@@ -326,7 +326,7 @@ class DuelCard(Suit: String, Number: String) : TargetedCard(Suit, Number, "Duel"
                 val attackCards = currentDuelist.hand.filterIsInstance<AttackCard>()
                 if (attackCards.size < requiredCards) {
                     val initialHP = currentDuelist.currentHP
-                    currentDuelist.currentHP--
+                    (currentDuelist as General).applyDamage(1, currentPlayer, this)
                     val damageDealt = initialHP - currentDuelist.currentHP
                     println("$opponentName can't provide $requiredCards Attack card(s), current HP is ${currentDuelist.currentHP}")
                     results.add("$opponentName took $damageDealt damage")
