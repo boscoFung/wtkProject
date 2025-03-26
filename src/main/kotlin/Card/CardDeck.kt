@@ -147,9 +147,11 @@ object CardDeck {
         } else {
             println("Current cards in the deck:")
             deck.forEachIndexed { index, card ->
-                println("${card.Suit} ${card.Number} - ${card.Name}")
+                print("${card.Suit} ${card.Number} - ${card.Name},")
             }
             println("Deck Size:" + getDeckSize())
+            printDiscardPile()
+            println("DiscardPile:" + getDeckSize())
         }
     }
 
@@ -159,7 +161,7 @@ object CardDeck {
         } else {
             println("Current cards in the discard pile:")
             discardPile.forEachIndexed { index, card ->
-                println("${card.Suit} ${card.Number} - ${card.Name}")
+                print("${card.Suit} ${card.Number} - ${card.Name},")
             }
             println("Discard Pile Size: ${discardPile.size}")
         }
